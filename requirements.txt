@@ -1,0 +1,8 @@
+asgiref==3.10.0
+Django==4.2.7
+django-cors-headers==4.9.0
+djangorestframework==3.16.1
+GDAL @ file:///C:/Users/alexs/Downloads/gdal-3.11.1-cp313-cp313-win_amd64.whl#sha256=a233e533689df3388ca990f11306dc9e68bf080c34b7460dc4b954500528187e
+psycopg2-binary==2.9.11
+sqlparse==0.5.3
+tzdata==2025.2
