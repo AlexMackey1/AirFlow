@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirFlow - Passenger Flow Visualizer</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .info-panel h2 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .info-panel p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .legend {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 15px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            background: #e8f5e9;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h2>🛫 AirFlow Prototype</h2>
+        <p><strong>Airport:</strong> <span id="airport-name">Loading...</span></p>
+        <p><strong>Data Points:</strong> <span id="point-count">0</span></p>
+        <p><strong>Status:</strong> <span id="status">Interim Demo</span></p>
+        
+        <div class="legend">
+            <strong>Passenger Density:</strong>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FF0000;"></div>
+                <span>High (150+ passengers)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFFF00;"></div>
+                <span>Medium (100-150 passengers)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0000FF;"></div>
+                <span>Low (&lt;100 passengers)</span>
+            </div>
+        </div>
+        
+        <div class="status" id="load-status">
+            Initializing map...
+        </div>
+    </div>
+    
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <script>
+        // Initialize map centered on Dublin Airport
+        const map = L.map('map').setView([53.4213, -6.2701], 15);
+
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Add airport marker
+        const airportMarker = L.marker([53.4213, -6.2701], {
+            title: 'Dublin Airport'
+        }).addTo(map);
+        
+        airportMarker.bindPopup(`
+            <strong>Dublin Airport (DUB)</strong><br>
+            <em>Passenger Flow Heatmap</em>
+        `).openPopup();
+
+        // Update status
+        document.getElementById('load-status').textContent = 'Loading heatmap data...';
+
+        // Fetch heatmap data from API
+        fetch('/api/heatmap/?airport=DUB')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response:', data);
+                
+                if (data.success) {
+                    // Update info panel
+                    document.getElementById('airport-name').textContent = data.airport;
+                    document.getElementById('point-count').textContent = data.point_count;
+                    document.getElementById('load-status').textContent = '✓ Data loaded successfully';
+                    document.getElementById('load-status').style.background = '#e8f5e9';
+                    
+                    // Create heatmap layer
+                    const heatLayer = L.heatLayer(data.points, {
+                        radius: 25,
+                        blur: 15,
+                        maxZoom: 17,
+                        max: 20.0,
+                        gradient: {
+                            0.0: 'blue',
+                            0.5: 'yellow',
+                            1.0: 'red'
+                        }
+                    }).addTo(map);
+                    
+                    console.log(`✓ Heatmap created with ${data.point_count} points`);
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading heatmap:', error);
+                document.getElementById('load-status').textContent = '✗ Error loading data';
+                document.getElementById('load-status').style.background = '#ffebee';
+                document.getElementById('load-status').style.color = '#c62828';
+            });
+    </script>
+</body>
+</html>
