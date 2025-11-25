@@ -73,7 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'airflow_project.wsgi.application'
 
-# 🗄️ Database configuration for PostGIS
+# Database configuration for PostGIS
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',

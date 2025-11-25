@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirFlow - Passenger Flow Visualizer</title>
+    <title>AirFlow - Passenger Flow Visualizer | Demo</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -16,7 +16,8 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
         }
         
         #map {
@@ -24,88 +25,254 @@
             width: 100%;
         }
         
+        /* Info Panel Styles */
         .info-panel {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            max-width: 300px;
+            max-width: 320px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         .info-panel h2 {
-            margin: 0 0 10px 0;
-            font-size: 20px;
-            color: #2c3e50;
+            margin: 0 0 16px 0;
+            font-size: 22px;
+            color: #1a1a1a;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .info-panel p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
+        .info-item {
+            margin: 12px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
         }
         
+        .info-item:last-of-type {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            font-size: 16px;
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+        
+        /* Legend Styles */
         .legend {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .legend-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 12px;
         }
         
         .legend-item {
             display: flex;
             align-items: center;
-            margin: 5px 0;
+            margin: 8px 0;
             font-size: 13px;
+            color: #444;
         }
         
-        .legend-color {
-            width: 30px;
-            height: 15px;
-            margin-right: 10px;
-            border-radius: 3px;
-        }
-        
-        .status {
-            margin-top: 10px;
-            padding: 8px;
-            background: #e8f5e9;
+        .legend-gradient {
+            width: 100%;
+            height: 20px;
             border-radius: 4px;
+            background: linear-gradient(to right, #0000FF, #00FFFF, #00FF00, #FFFF00, #FF0000);
+            margin: 8px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #666;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Refresh Button */
+        .refresh-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+        
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+        
+        .refresh-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Demo Badge */
+        .demo-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 152, 0, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 12px;
-            color: #2e7d32;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+            letter-spacing: 0.5px;
+        }
+        
+        /* Custom Leaflet Popup */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .leaflet-popup-content {
+            margin: 16px;
+            font-family: inherit;
         }
     </style>
 </head>
 <body>
+    <!-- Demo Badge -->
+    <div class="demo-badge">
+        🚧 INTERIM DEMO
+    </div>
+
+    <!-- Info Panel -->
     <div class="info-panel">
-        <h2>🛫 AirFlow Prototype</h2>
-        <p><strong>Airport:</strong> <span id="airport-name">Loading...</span></p>
-        <p><strong>Data Points:</strong> <span id="point-count">0</span></p>
-        <p><strong>Status:</strong> <span id="status">Interim Demo</span></p>
+        <h2>✈️ AirFlow</h2>
+        
+        <div class="info-item">
+            <div class="info-label">Airport</div>
+            <div class="info-value" id="airport-name">Loading...</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Location</div>
+            <div class="info-value" id="airport-location">—</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Data Points</div>
+            <div class="info-value" id="point-count">0</div>
+        </div>
+        
+        <div class="info-item">
+            <div class="info-label">Last Updated</div>
+            <div class="info-value" id="last-updated">—</div>
+        </div>
         
         <div class="legend">
-            <strong>Passenger Density:</strong>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FF0000;"></div>
-                <span>High (150+ passengers)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #FFFF00;"></div>
-                <span>Medium (100-150 passengers)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background: #0000FF;"></div>
-                <span>Low (&lt;100 passengers)</span>
+            <div class="legend-title">Passenger Density</div>
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
             </div>
         </div>
         
-        <div class="status" id="load-status">
-            Initializing map...
+        <div class="status-badge status-loading" id="status">
+            <span class="spinner"></span>
+            Initializing...
         </div>
+        
+        <button class="refresh-btn" id="refresh-btn" onclick="loadHeatmapData()">
+            🔄 Refresh Data
+        </button>
     </div>
     
+    <!-- Map Container -->
     <div id="map"></div>
 
     <!-- Leaflet JS -->
@@ -114,70 +281,158 @@
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <script>
-        // Initialize map centered on Dublin Airport
-        const map = L.map('map').setView([53.4213, -6.2701], 15);
-
-        // Add OpenStreetMap base layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
-
-        // Add airport marker
-        const airportMarker = L.marker([53.4213, -6.2701], {
-            title: 'Dublin Airport'
-        }).addTo(map);
+        // Global variables
+        let map;
+        let heatLayer;
+        let airportMarker;
         
-        airportMarker.bindPopup(`
-            <strong>Dublin Airport (DUB)</strong><br>
-            <em>Passenger Flow Heatmap</em>
-        `).openPopup();
+        // Initialize map
+        function initMap() {
+            map = L.map('map', {
+                center: [53.4213, -6.2701],
+                zoom: 15,
+                zoomControl: true,
+                preferCanvas: true
+            });
+
+            // Add OpenStreetMap base layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                minZoom: 12
+            }).addTo(map);
+
+            console.log('✓ Map initialized');
+        }
 
         // Update status
-        document.getElementById('load-status').textContent = 'Loading heatmap data...';
+        function updateStatus(message, type = 'loading') {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status-badge status-${type}`;
+            
+            if (type === 'loading') {
+                statusEl.innerHTML = `<span class="spinner"></span>${message}`;
+            } else if (type === 'success') {
+                statusEl.innerHTML = `✓ ${message}`;
+            } else if (type === 'error') {
+                statusEl.innerHTML = `✗ ${message}`;
+            }
+        }
 
-        // Fetch heatmap data from API
-        fetch('/api/heatmap/?airport=DUB')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('API Response:', data);
+        // Load heatmap data from API
+        function loadHeatmapData() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            refreshBtn.disabled = true;
+            updateStatus('Loading data...', 'loading');
+
+            fetch('/api/heatmap/?airport=DUB')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response:', data);
+                    
+                    if (data.success) {
+                        displayHeatmap(data);
+                        updateStatus('Connected', 'success');
+                    } else {
+                        throw new Error(data.error || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading heatmap:', error);
+                    updateStatus('Connection Error', 'error');
+                    
+                    // Update info panel with error state
+                    document.getElementById('airport-name').textContent = 'Error';
+                    document.getElementById('point-count').textContent = '—';
+                })
+                .finally(() => {
+                    refreshBtn.disabled = false;
+                });
+        }
+
+        // Display heatmap on map
+        function displayHeatmap(data) {
+            // Remove existing heatmap layer
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+            }
+            
+            // Remove existing airport marker
+            if (airportMarker) {
+                map.removeLayer(airportMarker);
+            }
+
+            // Update info panel
+            document.getElementById('airport-name').textContent = 
+                `${data.airport.name} (${data.airport.code})`;
+            document.getElementById('airport-location').textContent = 
+                `${data.airport.city}, ${data.airport.country}`;
+            document.getElementById('point-count').textContent = 
+                data.point_count.toLocaleString();
+            
+            // Format timestamp
+            if (data.timestamp) {
+                const date = new Date(data.timestamp);
+                document.getElementById('last-updated').textContent = 
+                    date.toLocaleString('en-IE', { 
+                        dateStyle: 'short', 
+                        timeStyle: 'short' 
+                    });
+            }
+
+            // Add airport marker
+            airportMarker = L.marker([data.airport.lat, data.airport.lon], {
+                title: data.airport.name,
+                icon: L.divIcon({
+                    className: 'airport-icon',
+                    html: '✈️',
+                    iconSize: [30, 30]
+                })
+            }).addTo(map);
+            
+            airportMarker.bindPopup(`
+                <div style="text-align: center;">
+                    <strong style="font-size: 16px;">${data.airport.name}</strong><br>
+                    <span style="color: #666; font-size: 14px;">${data.airport.code}</span><br>
+                    <em style="font-size: 12px; color: #999;">Passenger Flow Heatmap</em>
+                </div>
+            `);
+
+            // Create heatmap layer
+            if (data.points && data.points.length > 0) {
+                heatLayer = L.heatLayer(data.points, {
+                    radius: 15,
+                    blur: 10,
+                    maxZoom: 17,
+                    max: 1.0,
+                    gradient: {
+                        0.0: '#0000FF',
+                        0.2: '#00FFFF',
+                        0.4: '#00FF00',
+                        0.6: '#FFFF00',
+                        0.8: '#FF8800',
+                        1.0: '#FF0000'
+                    }
+                }).addTo(map);
                 
-                if (data.success) {
-                    // Update info panel
-                    document.getElementById('airport-name').textContent = data.airport;
-                    document.getElementById('point-count').textContent = data.point_count;
-                    document.getElementById('load-status').textContent = '✓ Data loaded successfully';
-                    document.getElementById('load-status').style.background = '#e8f5e9';
-                    
-                    // Create heatmap layer
-                    const heatLayer = L.heatLayer(data.points, {
-                        radius: 25,
-                        blur: 15,
-                        maxZoom: 17,
-                        max: 20.0,
-                        gradient: {
-                            0.0: 'blue',
-                            0.5: 'yellow',
-                            1.0: 'red'
-                        }
-                    }).addTo(map);
-                    
-                    console.log(`✓ Heatmap created with ${data.point_count} points`);
-                } else {
-                    throw new Error(data.error || 'Unknown error');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading heatmap:', error);
-                document.getElementById('load-status').textContent = '✗ Error loading data';
-                document.getElementById('load-status').style.background = '#ffebee';
-                document.getElementById('load-status').style.color = '#c62828';
-            });
+                console.log(`✓ Heatmap created with ${data.point_count} points`);
+            } else {
+                console.warn('No heatmap points to display');
+                updateStatus('No data available', 'error');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 AirFlow Demo initializing...');
+            initMap();
+            loadHeatmapData();
+        });
     </script>
 </body>
 </html>
