@@ -31,133 +31,73 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'✓ Using existing {dublin.name}'))
         
         # Define terminal hotspots with PRECISE Dublin Airport coordinates
-        # Based on the satellite image provided - Terminal 1 (upper) and Terminal 2 (lower)
+      
         terminal_hotspots = [
             # ===== TERMINAL 1 (Upper/Northern Terminal) =====
-            {
-                'name': 'T1 Check-in Hall (West)',
-                'lat': 53.42785,
-                'lon': -6.24415,
-                'base_intensity': 180,
-                'spread': 0.00035,  # Tighter spread to stay in building
-                'points': 18
-            },
-            {
-                'name': 'T1 Check-in Hall (East)',
-                'lat': 53.42770,
-                'lon': -6.24350,
-                'base_intensity': 170,
-                'spread': 0.00035,
-                'points': 16
-            },
-            {
-                'name': 'T1 Security Checkpoint',
-                'lat': 53.42755,
-                'lon': -6.24380,
-                'base_intensity': 160,
-                'spread': 0.00025,  # Very tight - security is compact
-                'points': 15
-            },
-            {
-                'name': 'T1 Departure Gates (North)',
-                'lat': 53.42800,
-                'lon': -6.24280,
-                'base_intensity': 190,
-                'spread': 0.00040,
-                'points': 20
-            },
-            {
-                'name': 'T1 Departure Gates (Central)',
-                'lat': 53.42760,
-                'lon': -6.24250,
-                'base_intensity': 195,
-                'spread': 0.00040,
-                'points': 20
-            },
-            {
-                'name': 'T1 Retail & Dining',
-                'lat': 53.42770,
-                'lon': -6.24300,
-                'base_intensity': 130,
-                'spread': 0.00030,
-                'points': 14
-            },
-            {
-                'name': 'T1 Arrivals Hall',
-                'lat': 53.42730,
-                'lon': -6.24450,
-                'base_intensity': 140,
-                'spread': 0.00040,
-                'points': 15
-            },
-            
-            # ===== TERMINAL 2 (Lower/Southern Terminal) =====
-            {
-                'name': 'T2 Check-in Hall',
-                'lat': 53.42135,
-                'lon': -6.24965,
-                'base_intensity': 175,
-                'spread': 0.00035,
-                'points': 17
-            },
-            {
-                'name': 'T2 Security',
-                'lat': 53.42115,
-                'lon': -6.24935,
-                'base_intensity': 155,
-                'spread': 0.00025,
-                'points': 14
-            },
-            {
-                'name': 'T2 Departures Lounge (West)',
-                'lat': 53.42095,
-                'lon': -6.25000,
-                'base_intensity': 145,
-                'spread': 0.00035,
-                'points': 15
-            },
-            {
-                'name': 'T2 Departures Lounge (East)',
-                'lat': 53.42085,
-                'lon': -6.24880,
-                'base_intensity': 150,
-                'spread': 0.00035,
-                'points': 15
-            },
-            {
-                'name': 'T2 Gates Area',
-                'lat': 53.42060,
-                'lon': -6.24920,
-                'base_intensity': 185,
-                'spread': 0.00040,
-                'points': 18
-            },
-            
-            # ===== SHARED/CENTRAL AREAS =====
-            {
-                'name': 'Baggage Claim Area',
-                'lat': 53.42450,
-                'lon': -6.24700,
-                'base_intensity': 120,
-                'spread': 0.00030,
-                'points': 12
-            },
-            {
-                'name': 'Central Immigration',
-                'lat': 53.42400,
-                'lon': -6.24650,
-                'base_intensity': 110,
-                'spread': 0.00025,
-                'points': 11
-            },
-            {
-                'name': 'Car Rental & Ground Transport',
-                'lat': 53.42350,
-                'lon': -6.24850,
-                'base_intensity': 85,
-                'spread': 0.00030,
-                'points': 10
-            },
+                {
+        'name': 'T1 Security',
+        'lat': 53.42677021722075,
+        'lon': -6.243525121892628,
+        'base_intensity': 160,
+        'spread': 0.00025,
+        'points': 15
+    },
+    {
+        'name': 'T1 Check In West',
+        'lat': 53.42754383538095,
+        'lon': -6.244651909621402,
+        'base_intensity': 180,
+        'spread': 0.00035,
+        'points': 18
+    },
+    {
+        'name': 'T1 Check In East',
+        'lat': 53.42702164466883,
+        'lon': -6.243743060262516,
+        'base_intensity': 170,
+        'spread': 0.00035,
+        'points': 16
+    },
+    {
+        'name': 'T1 Duty Free',
+        'lat': 53.42697972500428,
+        'lon': -6.244685941649552,
+        'base_intensity': 150,
+        'spread': 0.00030,
+        'points': 14
+    },
+    {
+        'name': 'Gates 300',
+        'lat': 53.426274128513555,
+        'lon': -6.245718703065823,
+        'base_intensity': 190,
+        'spread': 0.00040,
+        'points': 20
+    },
+    {
+        'name': 'Gates 200',
+        'lat': 53.42855701477172,
+        'lon': -6.246827744495224,
+        'base_intensity': 195,
+        'spread': 0.00040,
+        'points': 20
+    },
+    {
+        'name': 'Gates 100',
+        'lat': 53.4305190707979,
+        'lon': -6.248046447360785,
+        'base_intensity': 200,
+        'spread': 0.00040,
+        'points': 20
+    },
+    {
+        'name': 'Walk to 100 Gates',
+        'lat': 53.429199467511765,
+        'lon': -6.244280483613672,
+        'base_intensity': 100,
+        'spread': 0.00025,
+        'points': 10
+    },
         ]
         
         base_time = timezone.now() - timedelta(hours=2)
