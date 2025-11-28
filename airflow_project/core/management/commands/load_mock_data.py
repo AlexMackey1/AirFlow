@@ -33,13 +33,12 @@ class Command(BaseCommand):
         # Define terminal hotspots with PRECISE Dublin Airport coordinates
       
         terminal_hotspots = [
-            # ===== TERMINAL 1 (Upper/Northern Terminal) =====
-                {
+    {
         'name': 'T1 Security',
         'lat': 53.42677021722075,
         'lon': -6.243525121892628,
         'base_intensity': 160,
-        'spread': 0.00025,
+        'spread': 0.00003,  # ← Much tighter! Was 0.00010
         'points': 15
     },
     {
@@ -47,7 +46,7 @@ class Command(BaseCommand):
         'lat': 53.42754383538095,
         'lon': -6.244651909621402,
         'base_intensity': 180,
-        'spread': 0.00035,
+        'spread': 0.00005,  # ← Was 0.00012
         'points': 18
     },
     {
@@ -55,7 +54,7 @@ class Command(BaseCommand):
         'lat': 53.42702164466883,
         'lon': -6.243743060262516,
         'base_intensity': 170,
-        'spread': 0.00035,
+        'spread': 0.00005,  # ← Was 0.00012
         'points': 16
     },
     {
@@ -63,7 +62,7 @@ class Command(BaseCommand):
         'lat': 53.42697972500428,
         'lon': -6.244685941649552,
         'base_intensity': 150,
-        'spread': 0.00030,
+        'spread': 0.00004,  # ← Was 0.00010
         'points': 14
     },
     {
@@ -71,7 +70,7 @@ class Command(BaseCommand):
         'lat': 53.426274128513555,
         'lon': -6.245718703065823,
         'base_intensity': 190,
-        'spread': 0.00040,
+        'spread': 0.00006,  # ← Was 0.00015
         'points': 20
     },
     {
@@ -79,7 +78,7 @@ class Command(BaseCommand):
         'lat': 53.42855701477172,
         'lon': -6.246827744495224,
         'base_intensity': 195,
-        'spread': 0.00040,
+        'spread': 0.00006,  # ← Was 0.00015
         'points': 20
     },
     {
@@ -87,7 +86,7 @@ class Command(BaseCommand):
         'lat': 53.4305190707979,
         'lon': -6.248046447360785,
         'base_intensity': 200,
-        'spread': 0.00040,
+        'spread': 0.00006,  # ← Was 0.00015
         'points': 20
     },
     {
@@ -95,10 +94,10 @@ class Command(BaseCommand):
         'lat': 53.429199467511765,
         'lon': -6.244280483613672,
         'base_intensity': 100,
-        'spread': 0.00025,
+        'spread': 0.00003,  # ← Was 0.00010
         'points': 10
     },
-        ]
+]
         
         base_time = timezone.now() - timedelta(hours=2)
         total_points = 0

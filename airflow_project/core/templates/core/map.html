@@ -406,8 +406,8 @@
             // Create heatmap layer
             if (data.points && data.points.length > 0) {
                 heatLayer = L.heatLayer(data.points, {
-                    radius: 15,
-                    blur: 10,
+                    radius: 8,
+                    blur: 5,
                     maxZoom: 17,
                     max: 1.0,
                     gradient: {
