@@ -2,18 +2,11 @@
 
 **Interactive passenger flow visualization for Dublin Airport Terminal 1**
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![Django](https://img.shields.io/badge/Django-4.2.7-green.svg)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)
-![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-brightgreen.svg)
+## About This Prototype
 
----
+This is a **proof-of-concept prototype** demonstrating passenger flow visualization at Dublin Airport using interactive heatmaps.
 
-## 📋 About This Prototype
-
-This is a **proof-of-concept prototype** demonstrating passenger flow visualization at Dublin Airport using interactive heatmaps. Built as part of a BSc Computer Science final year project at TU Dublin.
-
-**Current Status:** Functional demo with simulated Terminal 1 passenger data (~890 data points)
+**Current Status:** Functional demo with simulated Terminal 1 passenger data
 
 **What It Does:**
 - Displays real-time passenger density heatmap
@@ -24,11 +17,10 @@ This is a **proof-of-concept prototype** demonstrating passenger flow visualizat
 **What It's NOT:**
 - Not using real flight data (uses simulated data)
 - Not production-ready (proof of concept only)
-- No authentication or security features
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
