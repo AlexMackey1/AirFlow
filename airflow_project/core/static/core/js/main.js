@@ -1,6 +1,17 @@
-// ===================================
-// AirFlow - Main Application JS
-// ===================================
+/*
+Author: Alexander Mackey
+Student ID: C22739165
+Description: Main JavaScript application for AirFlow. Handles Leaflet map initialization, API 
+communication with Django backend, heatmap rendering, user interface interactions, and real-time 
+statistics updates. Uses fetch API for asynchronous data loading and Leaflet.heat for visualization.
+
+Key Functions:
+- initMap(): Creates Leaflet map instance
+- loadHeatmapData(): Fetches passenger data from Django API
+- displayHeatmap(): Renders heatmap layer on map
+- updateStatistics(): Calculates and displays live metrics
+- initEventListeners(): Sets up button clicks and control interactions
+*/
 
 // Global variables
 let map;

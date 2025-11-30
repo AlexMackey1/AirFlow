@@ -1,3 +1,10 @@
+"""
+Author: Alexander Mackey
+Student ID: C22739165
+Description: URL routing configuration for core app. Maps URL patterns to view functions, 
+defining the main map page route and API endpoint for heatmap data retrieval.
+"""
+
 from django.urls import path
 from . import views
 
