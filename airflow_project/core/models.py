@@ -1,3 +1,11 @@
+"""
+Author: Alexander Mackey
+Student ID: C22739165
+Description: Database models for AirFlow application. Defines Airport model with PostGIS 
+spatial location and PassengerHeatmapData model for storing passenger density points used 
+in heatmap visualization.
+"""
+
 from django.contrib.gis.db import models
 
 class Airport(models.Model):
