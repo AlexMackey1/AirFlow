@@ -3,436 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AirFlow - Passenger Flow Visualizer | Demo</title>
+    <title>AirFlow - Passenger Flow Visualization</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            overflow: hidden;
-        }
-        
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
-        
-        /* Info Panel Styles */
-        .info-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            max-width: 320px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .info-panel h2 {
-            margin: 0 0 16px 0;
-            font-size: 22px;
-            color: #1a1a1a;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .info-item {
-            margin: 12px 0;
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .info-item:last-of-type {
-            border-bottom: none;
-        }
-        
-        .info-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-        
-        .info-value {
-            font-size: 16px;
-            color: #1a1a1a;
-            font-weight: 500;
-        }
-        
-        /* Legend Styles */
-        .legend {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
-        }
-        
-        .legend-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 12px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-            font-size: 13px;
-            color: #444;
-        }
-        
-        .legend-gradient {
-            width: 100%;
-            height: 20px;
-            border-radius: 4px;
-            background: linear-gradient(to right, #0000FF, #00FFFF, #00FF00, #FFFF00, #FF0000);
-            margin: 8px 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .legend-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #666;
-            margin-top: 4px;
-        }
-        
-        /* Status Badge */
-        .status-badge {
-            margin-top: 16px;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        .status-loading {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        /* Loading Spinner */
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-top-color: #666;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Refresh Button */
-        .refresh-btn {
-            width: 100%;
-            margin-top: 16px;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .refresh-btn:hover {
-            background: #0056b3;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-        }
-        
-        .refresh-btn:active {
-            transform: translateY(0);
-        }
-        
-        .refresh-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Demo Badge */
-        .demo-badge {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 152, 0, 0.95);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-            letter-spacing: 0.5px;
-        }
-        
-        /* Custom Leaflet Popup */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        }
-        
-        .leaflet-popup-content {
-            margin: 16px;
-            font-family: inherit;
-        }
-    </style>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/core/css/style.css">
 </head>
 <body>
-    <!-- Demo Badge -->
-    <div class="demo-badge">
-        🚧 INTERIM DEMO
-    </div>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-plane-departure"></i>
+            <span class="brand-name">AirFlow</span>
+            <span class="brand-tagline">Passenger Flow Analytics</span>
+        </div>
+        
+        <div class="nav-menu">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-map"></i>
+                <span>Live View</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-history"></i>
+                <span>Historical</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+        
+        <div class="nav-user">
+            <div class="airport-selector">
+                <i class="fas fa-location-dot"></i>
+                <select id="airport-select">
+                    <option value="DUB" selected>Dublin (DUB)</option>
+                    <option value="ORK">Cork (ORK)</option>
+                    <option value="SNN">Shannon (SNN)</option>
+                </select>
+            </div>
+            <div class="user-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </div>
+    </nav>
 
-    <!-- Info Panel -->
-    <div class="info-panel">
-        <h2>✈️ AirFlow</h2>
-        
-        <div class="info-item">
-            <div class="info-label">Airport</div>
-            <div class="info-value" id="airport-name">Loading...</div>
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <div class="control-section">
+            <h3><i class="fas fa-sliders"></i> View Controls</h3>
+            
+            <div class="control-group">
+                <label>
+                    <i class="fas fa-clock"></i>
+                    Time Range
+                </label>
+                <select id="time-range">
+                    <option value="live" selected>Live (Now)</option>
+                    <option value="1h">Last 1 Hour</option>
+                    <option value="3h">Last 3 Hours</option>
+                    <option value="6h">Last 6 Hours</option>
+                    <option value="24h">Last 24 Hours</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <i class="fas fa-layer-group"></i>
+                    Heatmap Intensity
+                </label>
+                <input type="range" id="intensity-slider" min="0" max="100" value="80">
+                <span class="range-value">80%</span>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <i class="fas fa-eye"></i>
+                    Display Layers
+                </label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" checked id="layer-heatmap">
+                        <span>Passenger Heatmap</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="layer-gates">
+                        <span>Gate Labels</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="layer-terminals">
+                        <span>Terminal Zones</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>
+                    <i class="fas fa-filter"></i>
+                    Filter by Status
+                </label>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">
+                        <i class="fas fa-globe"></i> All
+                    </button>
+                    <button class="filter-btn" data-filter="departing">
+                        <i class="fas fa-plane-departure"></i> Departing
+                    </button>
+                    <button class="filter-btn" data-filter="arriving">
+                        <i class="fas fa-plane-arrival"></i> Arriving
+                    </button>
+                </div>
+            </div>
+            
+            <button class="btn-refresh" id="refresh-btn">
+                <i class="fas fa-rotate"></i>
+                Refresh Data
+            </button>
         </div>
         
-        <div class="info-item">
-            <div class="info-label">Location</div>
-            <div class="info-value" id="airport-location">—</div>
-        </div>
-        
-        <div class="info-item">
-            <div class="info-label">Data Points</div>
-            <div class="info-value" id="point-count">0</div>
-        </div>
-        
-        <div class="info-item">
-            <div class="info-label">Last Updated</div>
-            <div class="info-value" id="last-updated">—</div>
-        </div>
-        
-        <div class="legend">
-            <div class="legend-title">Passenger Density</div>
-            <div class="legend-gradient"></div>
-            <div class="legend-labels">
-                <span>Low</span>
-                <span>Medium</span>
-                <span>High</span>
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <h3><i class="fas fa-chart-bar"></i> Current Statistics</h3>
+            
+            <div class="stat-item">
+                <div class="stat-icon" style="background: #4A90E2;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Active Passengers</div>
+                    <div class="stat-value" id="stat-passengers">—</div>
+                </div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon" style="background: #E24A4A;">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Peak Density Zone</div>
+                    <div class="stat-value" id="stat-peak">—</div>
+                </div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon" style="background: #50C878;">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Data Points</div>
+                    <div class="stat-value" id="stat-points">—</div>
+                </div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon" style="background: #FFA500;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Last Updated</div>
+                    <div class="stat-value" id="stat-updated">—</div>
+                </div>
             </div>
         </div>
         
-        <div class="status-badge status-loading" id="status">
-            <span class="spinner"></span>
-            Initializing...
+        <!-- Legend -->
+        <div class="legend-panel">
+            <h3><i class="fas fa-palette"></i> Density Legend</h3>
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+                <span><i class="fas fa-circle" style="color: #0000FF;"></i> Low</span>
+                <span><i class="fas fa-circle" style="color: #00FF00;"></i> Medium</span>
+                <span><i class="fas fa-circle" style="color: #FF0000;"></i> High</span>
+            </div>
         </div>
-        
-        <button class="refresh-btn" id="refresh-btn" onclick="loadHeatmapData()">
-            🔄 Refresh Data
-        </button>
     </div>
-    
+
     <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- Leaflet JS -->
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <i class="fas fa-signal"></i>
+            <span id="connection-status">Connected</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-database"></i>
+            <span id="data-status">Data Loaded</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-server"></i>
+            <span>Server: Online</span>
+        </div>
+    </div>
+
+<!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Heatmap Plugin -->
+    
+    <!-- Leaflet Heat Plugin -->
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-
-    <script>
-        // Global variables
-        let map;
-        let heatLayer;
-        let airportMarker;
-        
-        // Initialize map
-        function initMap() {
-            map = L.map('map', {
-                center: [53.4213, -6.2701],
-                zoom: 15,
-                zoomControl: true,
-                preferCanvas: true
-            });
-
-            // Add OpenStreetMap base layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19,
-                minZoom: 12
-            }).addTo(map);
-
-            console.log('✓ Map initialized');
-        }
-
-        // Update status
-        function updateStatus(message, type = 'loading') {
-            const statusEl = document.getElementById('status');
-            statusEl.className = `status-badge status-${type}`;
-            
-            if (type === 'loading') {
-                statusEl.innerHTML = `<span class="spinner"></span>${message}`;
-            } else if (type === 'success') {
-                statusEl.innerHTML = `✓ ${message}`;
-            } else if (type === 'error') {
-                statusEl.innerHTML = `✗ ${message}`;
-            }
-        }
-
-        // Load heatmap data from API
-        function loadHeatmapData() {
-            const refreshBtn = document.getElementById('refresh-btn');
-            refreshBtn.disabled = true;
-            updateStatus('Loading data...', 'loading');
-
-            fetch('/api/heatmap/?airport=DUB')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('API Response:', data);
-                    
-                    if (data.success) {
-                        displayHeatmap(data);
-                        updateStatus('Connected', 'success');
-                    } else {
-                        throw new Error(data.error || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading heatmap:', error);
-                    updateStatus('Connection Error', 'error');
-                    
-                    // Update info panel with error state
-                    document.getElementById('airport-name').textContent = 'Error';
-                    document.getElementById('point-count').textContent = '—';
-                })
-                .finally(() => {
-                    refreshBtn.disabled = false;
-                });
-        }
-
-        // Display heatmap on map
-        function displayHeatmap(data) {
-            // Remove existing heatmap layer
-            if (heatLayer) {
-                map.removeLayer(heatLayer);
-            }
-            
-            // Remove existing airport marker
-            if (airportMarker) {
-                map.removeLayer(airportMarker);
-            }
-
-            // Update info panel
-            document.getElementById('airport-name').textContent = 
-                `${data.airport.name} (${data.airport.code})`;
-            document.getElementById('airport-location').textContent = 
-                `${data.airport.city}, ${data.airport.country}`;
-            document.getElementById('point-count').textContent = 
-                data.point_count.toLocaleString();
-            
-            // Format timestamp
-            if (data.timestamp) {
-                const date = new Date(data.timestamp);
-                document.getElementById('last-updated').textContent = 
-                    date.toLocaleString('en-IE', { 
-                        dateStyle: 'short', 
-                        timeStyle: 'short' 
-                    });
-            }
-
-            // Add airport marker
-            airportMarker = L.marker([data.airport.lat, data.airport.lon], {
-                title: data.airport.name,
-                icon: L.divIcon({
-                    className: 'airport-icon',
-                    html: '✈️',
-                    iconSize: [30, 30]
-                })
-            }).addTo(map);
-            
-            airportMarker.bindPopup(`
-                <div style="text-align: center;">
-                    <strong style="font-size: 16px;">${data.airport.name}</strong><br>
-                    <span style="color: #666; font-size: 14px;">${data.airport.code}</span><br>
-                    <em style="font-size: 12px; color: #999;">Passenger Flow Heatmap</em>
-                </div>
-            `);
-
-            // Create heatmap layer
-            if (data.points && data.points.length > 0) {
-                heatLayer = L.heatLayer(data.points, {
-                    radius: 8,
-                    blur: 5,
-                    maxZoom: 17,
-                    max: 1.0,
-                    gradient: {
-                        0.0: '#0000FF',
-                        0.2: '#00FFFF',
-                        0.4: '#00FF00',
-                        0.6: '#FFFF00',
-                        0.8: '#FF8800',
-                        1.0: '#FF0000'
-                    }
-                }).addTo(map);
-                
-                console.log(`✓ Heatmap created with ${data.point_count} points`);
-            } else {
-                console.warn('No heatmap points to display');
-                updateStatus('No data available', 'error');
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 AirFlow Demo initializing...');
-            initMap();
-            loadHeatmapData();
-        });
-    </script>
+    
+    <!-- Custom JS -->
+    <script src="/static/core/js/main.js"></script>
 </body>
 </html>

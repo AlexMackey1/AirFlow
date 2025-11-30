@@ -1,0 +1,555 @@
+/* ===================================
+   AirFlow - Professional Styling
+   =================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    background: #f5f7fa;
+}
+
+/* ===================================
+   NAVIGATION BAR
+   =================================== */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    padding: 0 30px;
+    z-index: 1000;
+    color: white;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 50px;
+}
+
+.nav-brand i {
+    font-size: 28px;
+    color: #4A90E2;
+}
+
+.brand-name {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.brand-tagline {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.nav-menu {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.nav-item.active {
+    background: rgba(74, 144, 226, 0.3);
+    color: white;
+}
+
+.nav-item i {
+    font-size: 16px;
+}
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.airport-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 15px;
+    border-radius: 8px;
+}
+
+.airport-selector i {
+    color: #4A90E2;
+}
+
+.airport-selector select {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+}
+
+.airport-selector select option {
+    background: #2a5298;
+    color: white;
+}
+
+.user-avatar i {
+    font-size: 32px;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.user-avatar i:hover {
+    color: white;
+}
+
+/* ===================================
+   CONTROL PANEL (LEFT SIDEBAR)
+   =================================== */
+
+.control-panel {
+    position: fixed;
+    top: 65px;
+    left: 0;
+    width: 320px;
+    height: calc(100vh - 65px - 40px);
+    background: white;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    z-index: 900;
+    padding: 25px;
+}
+
+.control-section {
+    margin-bottom: 30px;
+}
+
+.control-section h3,
+.stats-panel h3,
+.legend-panel h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-section h3 i,
+.stats-panel h3 i,
+.legend-panel h3 i {
+    color: #4A90E2;
+    font-size: 18px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.control-group label i {
+    color: #4A90E2;
+    font-size: 14px;
+}
+
+.control-group select,
+.control-group input[type="range"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    transition: border-color 0.3s ease;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #4A90E2;
+}
+
+.control-group input[type="range"] {
+    padding: 0;
+    cursor: pointer;
+}
+
+.range-value {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #4A90E2;
+    font-weight: 600;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #4A90E2;
+}
+
+.filter-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.filter-btn {
+    padding: 10px;
+    border: 1px solid #e1e8ed;
+    background: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-btn:hover {
+    border-color: #4A90E2;
+    color: #4A90E2;
+}
+
+.filter-btn.active {
+    background: #4A90E2;
+    border-color: #4A90E2;
+    color: white;
+}
+
+.filter-btn i {
+    font-size: 16px;
+}
+
+.btn-refresh {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.btn-refresh:hover {
+    background: linear-gradient(135deg, #357ABD 0%, #2a5298 100%);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-refresh:active {
+    transform: translateY(0);
+}
+
+.btn-refresh i {
+    font-size: 16px;
+}
+
+/* ===================================
+   STATS PANEL
+   =================================== */
+
+.stats-panel {
+    margin-bottom: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e1e8ed;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    background: #f0f2f5;
+    transform: translateX(3px);
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+/* ===================================
+   LEGEND PANEL
+   =================================== */
+
+.legend-panel {
+    padding-top: 20px;
+    border-top: 1px solid #e1e8ed;
+}
+
+.legend-gradient {
+    width: 100%;
+    height: 25px;
+    border-radius: 6px;
+    background: linear-gradient(to right, 
+        #0000FF 0%, 
+        #00FFFF 20%, 
+        #00FF00 40%, 
+        #FFFF00 60%, 
+        #FF8800 80%, 
+        #FF0000 100%
+    );
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #555;
+}
+
+.legend-labels span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-labels i {
+    font-size: 10px;
+}
+
+/* ===================================
+   MAP CONTAINER
+   =================================== */
+
+#map {
+    position: fixed;
+    top: 65px;
+    left: 320px;
+    right: 0;
+    bottom: 40px;
+    z-index: 1;
+}
+
+/* ===================================
+   STATUS BAR (BOTTOM)
+   =================================== */
+
+.status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: #2c3e50;
+    display: flex;
+    align-items: center;
+    padding: 0 30px;
+    gap: 30px;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.status-item i {
+    color: #50C878;
+    font-size: 14px;
+}
+
+/* ===================================
+   SCROLLBAR STYLING
+   =================================== */
+
+.control-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.control-panel::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.control-panel::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+
+@media (max-width: 1024px) {
+    .control-panel {
+        width: 280px;
+    }
+    
+    #map {
+        left: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-menu {
+        display: none;
+    }
+    
+    .brand-tagline {
+        display: none;
+    }
+    
+    .control-panel {
+        width: 100%;
+        height: auto;
+        max-height: 50vh;
+        bottom: 40px;
+        top: auto;
+    }
+    
+    #map {
+        left: 0;
+        top: 65px;
+        bottom: calc(50vh + 40px);
+    }
+}
+
+/* ===================================
+   LEAFLET CUSTOM STYLING
+   =================================== */
+
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-popup-content {
+    margin: 16px;
+    font-family: inherit;
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-item,
+.control-group,
+.filter-btn {
+    animation: fadeIn 0.3s ease;
+}
