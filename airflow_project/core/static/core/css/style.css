@@ -554,3 +554,142 @@ body {
 .filter-btn {
     animation: fadeIn 0.3s ease;
 }
+
+.predictions-panel {
+    position: fixed;
+    top: 70px;
+    left: 320px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 20px;
+    z-index: 900;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.predictions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.predictions-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.predictions-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.btn-predict {
+    padding: 8px 20px;
+    background: #4A90E2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-predict:hover {
+    background: #357ABD;
+    transform: translateY(-1px);
+}
+
+.btn-predict:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    display: none;
+    font-size: 13px;
+    color: #666;
+}
+
+.loading-indicator.active {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chart-container {
+    margin: 15px 0;
+    height: 250px;
+}
+
+.predictions-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.summary-card {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.summary-label {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.summary-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.confidence-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.confidence-high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.confidence-medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.confidence-low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Adjust map position to account for predictions panel */
+#map {
+    top: 490px !important;
+}

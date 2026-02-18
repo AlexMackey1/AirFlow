@@ -1,9 +1,9 @@
 /*
 Author: Alexander Mackey
 Student ID: C22739165
-Description: Main JavaScript application for AirFlow. Handles Leaflet map initialization, API 
-communication with Django backend, heatmap rendering, user interface interactions, and real-time 
-statistics updates. Uses fetch API for asynchronous data loading and Leaflet.heat for visualization.
+Description: Main JavaScript application for AirFlow with Phase 3A enhancements. Handles Leaflet map 
+initialization, API communication with Django backend, heatmap rendering, user interface interactions, 
+and real-time statistics updates. Phase 3A adds Chart.js hourly predictions visualization.
 
 Key Functions:
 - initMap(): Creates Leaflet map instance
@@ -11,6 +11,12 @@ Key Functions:
 - displayHeatmap(): Renders heatmap layer on map
 - updateStatistics(): Calculates and displays live metrics
 - initEventListeners(): Sets up button clicks and control interactions
+
+Phase 3A Additions:
+- fetchPredictions(): Calls /api/predictions/hourly/ endpoint
+- displayHourlyChart(): Renders Chart.js line graph
+- updatePredictionSummary(): Updates prediction statistics
+- initPredictionsFeature(): Sets up date picker and run button
 */
 
 // Global variables
@@ -18,6 +24,7 @@ let map;
 let heatLayer;
 let airportMarker;
 let currentAirport = 'DUB';
+let predictionChart = null;  // Phase 3A: Chart.js instance
 
 // ===================================
 // INITIALIZATION
@@ -29,12 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
     initMap();
     loadHeatmapData();
     initEventListeners();
+    initPredictionsFeature();  // Phase 3A
     
     console.log('✓ AirFlow ready');
 });
 
 // ===================================
-// MAP INITIALIZATION
+// MAP INITIALIZATION (EXISTING)
 // ===================================
 
 function initMap() {
@@ -60,7 +68,7 @@ function initMap() {
 }
 
 // ===================================
-// HEATMAP DATA LOADING
+// HEATMAP DATA LOADING (EXISTING)
 // ===================================
 
 function loadHeatmapData() {
@@ -94,7 +102,7 @@ function loadHeatmapData() {
 }
 
 // ===================================
-// HEATMAP DISPLAY
+// HEATMAP DISPLAY (EXISTING)
 // ===================================
 
 function displayHeatmap(data) {
@@ -152,7 +160,7 @@ function displayHeatmap(data) {
 }
 
 // ===================================
-// STATISTICS UPDATE
+// STATISTICS UPDATE (EXISTING)
 // ===================================
 
 function updateStatistics(data) {
@@ -203,7 +211,7 @@ function updateStatistics(data) {
 }
 
 // ===================================
-// STATUS MANAGEMENT
+// STATUS MANAGEMENT (EXISTING)
 // ===================================
 
 function updateStatus(status) {
@@ -227,7 +235,174 @@ function updateStatus(status) {
 }
 
 // ===================================
-// EVENT LISTENERS
+// PHASE 3A: PREDICTIONS FEATURE
+// ===================================
+
+function initPredictionsFeature() {
+    // Set date picker to tomorrow by default
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateString = tomorrow.toISOString().split('T')[0];
+    document.getElementById('prediction-date').value = dateString;
+    
+    // Add event listener to Run Prediction button
+    document.getElementById('btn-run-prediction').addEventListener('click', runPrediction);
+    
+    console.log('✓ Predictions feature initialized');
+}
+
+async function runPrediction() {
+    const airport = document.getElementById('airport-select').value;
+    const date = document.getElementById('prediction-date').value;
+    
+    const button = document.getElementById('btn-run-prediction');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    
+    // Show loading state
+    button.disabled = true;
+    loadingIndicator.classList.add('active');
+    
+    try {
+        const data = await fetchPredictions(airport, date);
+        
+        if (data.success) {
+            displayHourlyChart(data.predictions);
+            updatePredictionSummary(data.summary);
+            showNotification('Predictions generated successfully', 'success');
+        } else {
+            throw new Error(data.error || 'Failed to generate predictions');
+        }
+    } catch (error) {
+        console.error('Prediction error:', error);
+        showNotification('Failed to generate predictions', 'error');
+    } finally {
+        // Hide loading state
+        button.disabled = false;
+        loadingIndicator.classList.remove('active');
+    }
+}
+
+async function fetchPredictions(airport, date) {
+    const response = await fetch(`/api/predictions/hourly/?airport=${airport}&date=${date}`);
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+}
+
+function displayHourlyChart(predictions) {
+    const ctx = document.getElementById('hourlyChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (predictionChart) {
+        predictionChart.destroy();
+    }
+    
+    // Prepare data
+    const hours = predictions.map(p => `${p.hour.toString().padStart(2, '0')}:00`);
+    const passengers = predictions.map(p => p.passengers);
+    
+    // Create chart
+    predictionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: hours,
+            datasets: [{
+                label: 'Estimated Passengers',
+                data: passengers,
+                backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                borderColor: 'rgba(74, 144, 226, 1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: false
+                },
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const prediction = predictions[context.dataIndex];
+                            return [
+                                `Passengers: ${prediction.passengers}`,
+                                `Confidence: ${prediction.level} (${prediction.confidence})`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Passengers'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hour of Day'
+                    }
+                }
+            }
+        }
+    });
+    
+    console.log('✓ Chart rendered with', predictions.length, 'data points');
+}
+
+function updatePredictionSummary(summary) {
+    // Update total passengers
+    document.getElementById('summary-total').textContent = 
+        summary.total_passengers.toLocaleString();
+    
+    // Update peak hour
+    document.getElementById('summary-peak').textContent = 
+        `${summary.peak_hour.toString().padStart(2, '0')}:00 (${summary.peak_passengers} pax)`;
+    
+    // Update flights processed
+    document.getElementById('summary-flights').textContent = 
+        summary.flights_processed;
+    
+    // Update confidence with badge
+    const confidence = summary.avg_confidence;
+    let badge, level;
+    
+    if (confidence >= 0.8) {
+        badge = 'confidence-high';
+        level = 'High';
+    } else if (confidence >= 0.5) {
+        badge = 'confidence-medium';
+        level = 'Medium';
+    } else {
+        badge = 'confidence-low';
+        level = 'Low';
+    }
+    
+    document.getElementById('summary-confidence').innerHTML = 
+        `<span class="confidence-badge ${badge}">${level} (${confidence.toFixed(2)})</span>`;
+}
+
+// ===================================
+// EVENT LISTENERS (EXISTING)
 // ===================================
 
 function initEventListeners() {
@@ -313,7 +488,7 @@ function initEventListeners() {
 }
 
 // ===================================
-// NOTIFICATIONS
+// NOTIFICATIONS (EXISTING)
 // ===================================
 
 function showNotification(message, type = 'info') {
