@@ -1,0 +1,419 @@
+/*
+Author: Alexander Mackey
+Student ID: C22739165
+Description: Analytics page CSS - styles specific to analytics.html.
+Handles the scrollable layout with chart, time slider, summary cards,
+and algorithm info panel.
+
+The analytics page is a normal scrollable page (not fixed/overflow:hidden).
+Content sits below the navbar and above the status bar.
+*/
+
+/* Analytics page uses normal scroll */
+body.analytics-page {
+    overflow-y: auto;
+    padding-top: var(--navbar-h);
+    padding-bottom: var(--statusbar-h);
+    min-height: 100vh;
+    background: #f0f3f8;
+}
+
+/* ===================================
+   MAIN LAYOUT
+   =================================== */
+
+.analytics-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ===================================
+   PAGE HEADER
+   =================================== */
+
+.analytics-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.analytics-header__title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.analytics-header__title h1 i {
+    color: var(--primary);
+}
+
+.analytics-header__subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 480px;
+}
+
+.analytics-header__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ===================================
+   SUMMARY CARDS GRID
+   =================================== */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+}
+
+.summary-card__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.summary-card--total    .summary-card__icon { background: var(--primary); }
+.summary-card--peak     .summary-card__icon { background: var(--danger); }
+.summary-card--flights  .summary-card__icon { background: var(--warning); }
+.summary-card--confidence .summary-card__icon { background: var(--success); }
+
+.summary-card__label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 3px;
+}
+
+.summary-card__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.2;
+}
+
+/* ===================================
+   CHART SECTION
+   =================================== */
+
+.chart-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+.chart-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.chart-section__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.chart-section__hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 320px;
+}
+
+/* Empty state overlay shown before predictions are run */
+.chart-empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(248, 249, 250, 0.9);
+    border-radius: 8px;
+    border: 2px dashed #ddd;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 20px;
+}
+
+.chart-empty-state i {
+    font-size: 40px;
+    color: #ccc;
+}
+
+.chart-empty-state p {
+    font-size: 13px;
+    max-width: 280px;
+    line-height: 1.5;
+}
+
+.chart-empty-state.hidden {
+    display: none;
+}
+
+/* ===================================
+   TIME SLIDER SECTION
+   =================================== */
+
+.slider-section {
+    background: white;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+.slider-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.slider-section__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dark);
+}
+
+.slider-section__left i {
+    color: var(--primary);
+    font-size: 16px;
+}
+
+.slider-section__label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.slider-section__right {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.slider-selected-hour {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.slider-passenger-count {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* The range input */
+.time-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #50C878, #FFFF00, #FF8800, #E24A4A);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(74, 144, 226, 0.45);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.time-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 3px 10px rgba(74, 144, 226, 0.6);
+}
+
+.time-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(74, 144, 226, 0.45);
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #aaa;
+}
+
+/* ===================================
+   ALGORITHM INFO PANEL
+   =================================== */
+
+.algo-info {
+    background: white;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+.algo-info__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 14px;
+}
+
+.algo-info__header i {
+    color: var(--primary);
+}
+
+.algo-info__stages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.algo-stage {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.algo-stage__num {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.algo-stage__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.algo-stage__text strong {
+    font-size: 13px;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.algo-stage__text span {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* ===================================
+   RESPONSIVE
+   =================================== */
+
+@media (max-width: 1024px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-main {
+        padding: 16px 12px 32px;
+        gap: 14px;
+    }
+
+    .analytics-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .analytics-header__controls {
+        width: 100%;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .chart-wrapper {
+        height: 240px;
+    }
+
+    .slider-section__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+}

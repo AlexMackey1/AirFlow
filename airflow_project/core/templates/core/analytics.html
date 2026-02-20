@@ -1,0 +1,326 @@
+<!--
+Author: Alexander Mackey
+Student ID: C22739165
+Description: AirFlow Analytics page - Dedicated page for hourly passenger predictions,
+Chart.js visualisation, time slider exploration, and summary statistics.
+Separated from map view so each page gets maximum screen space.
+
+Features:
+- Full-width Chart.js line graph (24-hour predictions)
+- Date picker + Run Prediction button
+- Time slider (0-23 hours) with passenger count display
+- Summary statistics cards (total, peak, flights, confidence)
+- Modal flight search (same as map page)
+- Working navbar routing between Live View and Analytics
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirFlow - Analytics</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="/static/core/css/style.css">
+    <!-- Analytics-specific CSS -->
+    <link rel="stylesheet" href="/static/core/css/analytics.css">
+</head>
+<body class="analytics-page">
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <i class="fas fa-plane-departure"></i>
+            <span class="brand-name">AirFlow</span>
+            <span class="brand-tagline">Passenger Flow Analytics</span>
+        </div>
+
+        <div class="nav-menu">
+            <a href="/" class="nav-item">
+                <i class="fas fa-map"></i>
+                <span>Live View</span>
+            </a>
+            <a href="/analytics/" class="nav-item active">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-item nav-item--disabled" title="Coming soon">
+                <i class="fas fa-history"></i>
+                <span>Historical</span>
+            </a>
+            <button id="btn-open-flight-modal" class="nav-item nav-button">
+                <i class="fas fa-plane"></i>
+                <span>Search Flight</span>
+            </button>
+        </div>
+
+        <div class="nav-user">
+            <div class="airport-selector">
+                <i class="fas fa-location-dot"></i>
+                <select id="airport-select">
+                    <option value="DUB" selected>Dublin (DUB)</option>
+                    <option value="ORK">Cork (ORK)</option>
+                    <option value="SNN">Shannon (SNN)</option>
+                </select>
+            </div>
+            <div class="user-avatar">
+                <i class="fas fa-user-circle"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN ANALYTICS LAYOUT ===== -->
+    <main class="analytics-main">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <div class="analytics-header">
+            <div class="analytics-header__title">
+                <h1><i class="fas fa-chart-area"></i> Hourly Passenger Predictions</h1>
+                <p class="analytics-header__subtitle">
+                    Run the 5-stage estimation algorithm to forecast passenger flow at Dublin Airport
+                </p>
+            </div>
+            <div class="analytics-header__controls">
+                <input type="date" id="prediction-date" class="date-input">
+                <button id="btn-run-prediction" class="btn-predict">
+                    <i class="fas fa-play"></i> Run Prediction
+                </button>
+                <span class="loading-indicator" id="loading-indicator">
+                    <i class="fas fa-spinner fa-spin"></i> Calculating...
+                </span>
+            </div>
+        </div>
+
+        <!-- ===== SUMMARY CARDS ===== -->
+        <div class="summary-grid" id="summary-grid">
+            <div class="summary-card summary-card--total">
+                <div class="summary-card__icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="summary-card__content">
+                    <div class="summary-card__label">Total Passengers</div>
+                    <div class="summary-card__value" id="summary-total">—</div>
+                </div>
+            </div>
+            <div class="summary-card summary-card--peak">
+                <div class="summary-card__icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="summary-card__content">
+                    <div class="summary-card__label">Peak Hour</div>
+                    <div class="summary-card__value" id="summary-peak">—</div>
+                </div>
+            </div>
+            <div class="summary-card summary-card--flights">
+                <div class="summary-card__icon">
+                    <i class="fas fa-plane"></i>
+                </div>
+                <div class="summary-card__content">
+                    <div class="summary-card__label">Flights Processed</div>
+                    <div class="summary-card__value" id="summary-flights">—</div>
+                </div>
+            </div>
+            <div class="summary-card summary-card--confidence">
+                <div class="summary-card__icon">
+                    <i class="fas fa-shield-check"></i>
+                </div>
+                <div class="summary-card__content">
+                    <div class="summary-card__label">Confidence</div>
+                    <div class="summary-card__value" id="summary-confidence">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CHART SECTION ===== -->
+        <div class="chart-section">
+            <div class="chart-section__header">
+                <span class="chart-section__title">24-Hour Passenger Flow</span>
+                <span class="chart-section__hint" id="chart-hint">
+                    <i class="fas fa-info-circle"></i> Run a prediction to see the chart
+                </span>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="hourlyChart"></canvas>
+                <!-- Empty state overlay -->
+                <div class="chart-empty-state" id="chart-empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <p>Select a date and click <strong>Run Prediction</strong> to generate hourly passenger flow estimates</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== TIME SLIDER SECTION ===== -->
+        <div class="slider-section">
+            <div class="slider-section__header">
+                <div class="slider-section__left">
+                    <i class="fas fa-clock"></i>
+                    <span class="slider-section__label">Explore by Hour</span>
+                </div>
+                <div class="slider-section__right">
+                    <span class="slider-selected-hour" id="selected-hour-display">12:00</span>
+                    <span class="slider-passenger-count" id="selected-hour-congestion">— passengers</span>
+                </div>
+            </div>
+            <input type="range" id="time-slider" class="time-slider" min="0" max="23" value="12" step="1">
+            <div class="slider-labels">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>23:00</span>
+            </div>
+        </div>
+
+        <!-- ===== ALGORITHM INFO PANEL ===== -->
+        <div class="algo-info">
+            <div class="algo-info__header">
+                <i class="fas fa-cog"></i>
+                <span>Algorithm Details</span>
+            </div>
+            <div class="algo-info__stages">
+                <div class="algo-stage">
+                    <div class="algo-stage__num">1</div>
+                    <div class="algo-stage__text">
+                        <strong>Data Preparation</strong>
+                        <span>Retrieve flights, filter cancelled, apply intelligent defaults</span>
+                    </div>
+                </div>
+                <div class="algo-stage">
+                    <div class="algo-stage__num">2</div>
+                    <div class="algo-stage__text">
+                        <strong>Capacity Estimation</strong>
+                        <span>Passengers = Aircraft Capacity × Load Factor (airline-specific)</span>
+                    </div>
+                </div>
+                <div class="algo-stage">
+                    <div class="algo-stage__num">3</div>
+                    <div class="algo-stage__text">
+                        <strong>Temporal Distribution</strong>
+                        <span>Normal distribution for arrival times (90–180 min before departure)</span>
+                    </div>
+                </div>
+                <div class="algo-stage">
+                    <div class="algo-stage__num">4</div>
+                    <div class="algo-stage__text">
+                        <strong>Aggregation</strong>
+                        <span>Sum passenger contributions into 24-hour array</span>
+                    </div>
+                </div>
+                <div class="algo-stage">
+                    <div class="algo-stage__num">5</div>
+                    <div class="algo-stage__text">
+                        <strong>Confidence Calculation</strong>
+                        <span>Weighted scoring: aircraft type (0.5), load factor (0.3), status (0.2)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ===== STATUS BAR ===== -->
+    <div class="status-bar">
+        <div class="status-item">
+            <i class="fas fa-signal"></i>
+            <span id="connection-status">Connected</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-database"></i>
+            <span id="data-status">Ready</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-server"></i>
+            <span>Server: Online</span>
+        </div>
+    </div>
+
+    <!-- ===== FLIGHT SEARCH MODAL (same as map page) ===== -->
+    <div class="modal-overlay" id="flight-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-plane"></i>
+                    Flight-Specific Recommendations
+                </h2>
+                <button class="modal-close" id="btn-close-flight-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="flight-search-form">
+                    <label for="flight-number-input">Enter Flight Number:</label>
+                    <div class="search-input-group">
+                        <input type="text" id="flight-number-input" placeholder="e.g., EI101, FR201" class="flight-input">
+                        <button id="btn-search-flight" class="btn-search">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <span class="flight-search-loading" id="flight-loading-indicator">
+                        <i class="fas fa-spinner fa-spin"></i> Searching...
+                    </span>
+                </div>
+
+                <div class="flight-details" id="flight-details" style="display: none;">
+                    <h4><i class="fas fa-info-circle"></i> Flight Information</h4>
+                    <div class="detail-row">
+                        <span class="detail-label">Flight:</span>
+                        <span class="detail-value" id="detail-flight-number">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Airline:</span>
+                        <span class="detail-value" id="detail-airline">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Destination:</span>
+                        <span class="detail-value" id="detail-destination">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Departure:</span>
+                        <span class="detail-value" id="detail-departure">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Aircraft:</span>
+                        <span class="detail-value" id="detail-aircraft">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Est. Passengers:</span>
+                        <span class="detail-value" id="detail-passengers">—</span>
+                    </div>
+                </div>
+
+                <div class="arrival-recommendation" id="arrival-recommendation" style="display: none;">
+                    <h4><i class="fas fa-lightbulb"></i> Personalized Recommendation</h4>
+                    <div class="recommendation-highlight">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <div class="recommendation-label">Optimal Arrival Time</div>
+                            <div class="recommendation-value" id="rec-arrival-time">—</div>
+                        </div>
+                    </div>
+                    <div class="recommendation-details">
+                        <p id="rec-comparison">—</p>
+                        <p id="rec-time-savings">—</p>
+                        <p id="rec-route-note">—</p>
+                    </div>
+                </div>
+
+                <div class="flight-error" id="flight-error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="flight-error-message">Flight not found</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Shared JS -->
+    <script src="/static/core/js/main.js"></script>
+    <!-- Analytics-specific JS -->
+    <script src="/static/core/js/analytics.js"></script>
+</body>
+</html>

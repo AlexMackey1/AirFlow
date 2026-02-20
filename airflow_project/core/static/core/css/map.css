@@ -1,0 +1,387 @@
+/*
+Author: Alexander Mackey
+Student ID: C22739165
+Description: Map page CSS - styles specific to the Live View (map.html).
+Handles the collapsible control panel, map container sizing, and legend.
+
+Map fills: full width (minus panel) × (100vh - navbar - statusbar)
+Panel: collapses from 300px → 48px with smooth animation
+*/
+
+/* Map page prevents body scroll - map fills viewport */
+body.map-page {
+    overflow: hidden;
+}
+
+/* ===================================
+   COLLAPSIBLE CONTROL PANEL
+   =================================== */
+
+.control-panel {
+    position: fixed;
+    top: var(--navbar-h);
+    left: 0;
+    width: var(--panel-w);
+    height: calc(100vh - var(--navbar-h) - var(--statusbar-h));
+    background: white;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+    z-index: 900;
+    display: flex;
+    flex-direction: row;
+    transition: width var(--transition);
+    overflow: hidden;
+}
+
+/* Collapsed state */
+.control-panel.collapsed {
+    width: var(--panel-collapsed-w);
+}
+
+/* Toggle button - always visible on the right edge of the panel */
+.control-panel__toggle {
+    position: absolute;
+    top: 50%;
+    right: -14px;                         /* Peeks out to the right of the panel */
+    transform: translateY(-50%);
+    width: 28px;
+    height: 48px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 3px 0 8px rgba(0,0,0,0.08);
+    transition: background var(--transition);
+}
+
+.control-panel__toggle:hover {
+    background: #f0f4ff;
+}
+
+.control-panel__toggle i {
+    font-size: 12px;
+    color: var(--primary);
+    transition: transform var(--transition);
+}
+
+/* When collapsed, flip the chevron */
+.control-panel.collapsed .control-panel__toggle i {
+    transform: rotate(180deg);
+}
+
+/* Panel content - scrollable, fades out when collapsed */
+.control-panel__content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 18px 16px;
+    opacity: 1;
+    transition: opacity var(--transition);
+    min-width: 0;
+}
+
+.control-panel.collapsed .control-panel__content {
+    opacity: 0;
+    pointer-events: none;  /* Prevent interaction when collapsed */
+}
+
+/* ===================================
+   CONTROL PANEL INTERNALS
+   =================================== */
+
+.control-section {
+    margin-bottom: 22px;
+}
+
+.control-section h3,
+.legend-panel h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.control-section h3 i,
+.legend-panel h3 i {
+    color: var(--primary);
+    font-size: 13px;
+}
+
+.control-group {
+    margin-bottom: 14px;
+}
+
+.control-group > label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.control-group > label i {
+    color: var(--primary);
+    font-size: 11px;
+}
+
+.control-group select {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    background: white;
+    color: var(--dark);
+    cursor: pointer;
+    transition: border-color var(--transition);
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.control-group input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.range-value {
+    display: inline-block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Checkboxes */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+/* Filter buttons */
+.filter-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.filter-btn {
+    padding: 7px 4px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.filter-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.filter-btn i {
+    font-size: 12px;
+}
+
+/* Refresh button */
+.btn-refresh {
+    width: 100%;
+    padding: 9px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: all var(--transition);
+    box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3);
+}
+
+.btn-refresh:hover {
+    box-shadow: 0 3px 10px rgba(74, 144, 226, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-refresh:active {
+    transform: translateY(0);
+}
+
+.btn-refresh:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+/* ===================================
+   LEGEND PANEL
+   =================================== */
+
+.legend-panel {
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    margin-bottom: 20px;
+}
+
+.legend-gradient {
+    width: 100%;
+    height: 16px;
+    border-radius: 5px;
+    background: linear-gradient(to right,
+        #0000FF 0%,
+        #00FFFF 20%,
+        #00FF00 40%,
+        #FFFF00 60%,
+        #FF8800 80%,
+        #FF0000 100%
+    );
+    margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #666;
+}
+
+/* ===================================
+   ANALYTICS QUICK LINK
+   =================================== */
+
+.panel-analytics-link {
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+}
+
+.analytics-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    color: var(--primary);
+    border: 1px solid rgba(74, 144, 226, 0.25);
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition);
+}
+
+.analytics-link-btn:hover {
+    background: linear-gradient(135deg, #e0eaff 0%, #d4e4ff 100%);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+/* ===================================
+   MAP CONTAINER
+   Uses CSS variables so it responds to panel width automatically
+   =================================== */
+
+#map {
+    position: fixed;
+    top: var(--navbar-h);
+    left: var(--panel-w);               /* Sits right next to panel */
+    right: 0;
+    bottom: var(--statusbar-h);
+    z-index: 1;
+    transition: left var(--transition); /* Smooth expand when panel collapses */
+}
+
+/* When panel is collapsed, map expands */
+.control-panel.collapsed ~ #map {
+    left: var(--panel-collapsed-w);
+}
+
+/* Leaflet popup overrides */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.leaflet-popup-content {
+    margin: 12px;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+/* ===================================
+   RESPONSIVE
+   =================================== */
+
+@media (max-width: 768px) {
+    /* Panel slides off-screen on mobile - map fills full width */
+    .control-panel {
+        transform: translateX(-100%);
+        width: var(--panel-w);
+        transition: transform var(--transition);
+    }
+
+    .control-panel.mobile-open {
+        transform: translateX(0);
+    }
+
+    .control-panel__toggle {
+        display: none;
+    }
+
+    #map {
+        left: 0 !important;
+    }
+}
