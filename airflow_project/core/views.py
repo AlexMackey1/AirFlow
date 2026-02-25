@@ -414,3 +414,119 @@ def flight_search_api(request):
     except Exception as e:
         logger.exception(f"Error searching flight: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def dynamic_heatmap_api(request):
+    """
+    PHASE 3B.5: Generate dynamic algorithm-driven heatmap points for a given hour.
+
+    Instead of returning static DB points, this endpoint runs the EstimationService,
+    extracts the passenger count for the requested hour, and distributes points
+    across realistic Dublin Airport terminal areas.
+
+    Query Parameters:
+        airport (str): IATA code (default: 'DUB')
+        date (str):    YYYY-MM-DD (default: tomorrow)
+        hour (int):    0-23 (default: 12)
+
+    Returns:
+        JsonResponse:
+        {
+            'success': True,
+            'hour': 12,
+            'passengers': 608,
+            'max_passengers': 608,
+            'relative_intensity': 1.0,
+            'points': [[lat, lon, intensity], ...]
+        }
+
+    Performance requirement: < 0.5 seconds
+    Note: Point generation is done client-side in map.js for better performance.
+          This endpoint returns the raw passenger count; the frontend generates points.
+    """
+    import random
+    import math
+
+    airport_code = request.GET.get('airport', 'DUB')
+    date_str     = request.GET.get('date')
+    hour_str     = request.GET.get('hour', '12')
+
+    # Validate hour
+    try:
+        hour = int(hour_str)
+        if not 0 <= hour <= 23:
+            raise ValueError
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'hour must be 0–23'}, status=400)
+
+    # Parse date
+    if date_str:
+        try:
+            prediction_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+    else:
+        prediction_date = date.today() + timedelta(days=1)
+
+    try:
+        airport = Airport.objects.get(iata_code=airport_code)
+
+        service     = EstimationService(airport_code, prediction_date)
+        predictions = service.generate_hourly_predictions(verbose=False)
+
+        # Extract the requested hour
+        hour_data   = next((p for p in predictions if p['hour'] == hour), {'passengers': 0, 'confidence': 0.0})
+        passengers  = hour_data['passengers']
+        max_passengers = max((p['passengers'] for p in predictions), default=1)
+        relative_intensity = passengers / max_passengers if max_passengers > 0 else 0.0
+
+        # Terminal area definitions for Dublin Airport
+        # Point generation can also be done client-side (map.js does this)
+        # This endpoint exists for server-side generation / future caching
+        areas = [
+            {'lat': 53.4213, 'lon': -6.2701, 'radius': 0.0010, 'pct': 0.20},  # T1 check-in
+            {'lat': 53.4273, 'lon': -6.2441, 'radius': 0.0010, 'pct': 0.10},  # T2 check-in
+            {'lat': 53.4223, 'lon': -6.2681, 'radius': 0.0008, 'pct': 0.25},  # Security
+            {'lat': 53.4283, 'lon': -6.2511, 'radius': 0.0015, 'pct': 0.25},  # Gates 200-216
+            {'lat': 53.4183, 'lon': -6.2651, 'radius': 0.0012, 'pct': 0.15},  # Gates 300
+            {'lat': 53.4233, 'lon': -6.2641, 'radius': 0.0006, 'pct': 0.05},  # Retail/food
+        ]
+
+        points = []
+        max_points = min(250, max(30, passengers // 25)) if passengers > 0 else 0
+
+        for area in areas:
+            zone_count = round(max_points * area['pct'])
+            zone_intensity = relative_intensity * area['pct'] * 6
+
+            for _ in range(zone_count):
+                # Box-Muller Gaussian scatter for realistic crowd clustering
+                u1 = max(random.random(), 1e-10)
+                u2 = random.random()
+                gaussian = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+
+                lat       = area['lat'] + gaussian * area['radius']
+                lon       = area['lon'] + gaussian * area['radius'] * 1.5
+                intensity = min(1.0, max(0.05, zone_intensity + (random.random() - 0.5) * 0.1))
+                points.append([round(lat, 6), round(lon, 6), round(intensity, 3)])
+
+        logger.info(f"Dynamic heatmap: {airport_code} {prediction_date} hour={hour} pax={passengers} points={len(points)}")
+
+        return JsonResponse({
+            'success':            True,
+            'airport':            airport_code,
+            'date':               str(prediction_date),
+            'hour':               hour,
+            'passengers':         passengers,
+            'max_passengers':     max_passengers,
+            'relative_intensity': round(relative_intensity, 3),
+            'point_count':        len(points),
+            'points':             points
+        })
+
+    except Airport.DoesNotExist:
+        return JsonResponse({'success': False, 'error': f'Airport {airport_code} not found'}, status=404)
+
+    except Exception as e:
+        logger.exception(f"Error generating dynamic heatmap: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

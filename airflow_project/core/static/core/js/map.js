@@ -18,6 +18,9 @@ let map;
 let heatLayer;
 let airportMarker;
 
+// Phase 3B.5: store predictions so the time slider can scrub without re-fetching
+let mapPredictions = [];  // Array of {hour, passengers, confidence, level}
+
 // ===================================
 // INIT
 // ===================================
@@ -28,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadHeatmapData();
     initCollapsiblePanel();
     initMapControls();
+    initMapPrediction();   // Phase 3B.5
     console.log('✓ Map page ready');
 });
 
@@ -293,4 +297,227 @@ function initMapControls() {
     }
 
     console.log('✓ Map controls initialized');
+}
+
+// ===================================
+// PHASE 3B.5: MAP PREDICTION + DYNAMIC HEATMAP
+// ===================================
+
+/**
+ * Dublin Airport terminal area definitions for distributing predicted
+ * passengers into realistic spatial heatmap points.
+ *
+ * passenger_pct: proportion of total hourly passengers placed in this zone.
+ * radius:        scatter radius in degrees (~100m per 0.001 degrees latitude).
+ */
+const DUBLIN_AIRPORT_AREAS = [
+    { name: 'Terminal 1 Check-in', lat: 53.4213, lon: -6.2701, radius: 0.0010, passenger_pct: 0.20 },
+    { name: 'Terminal 2 Check-in', lat: 53.4273, lon: -6.2441, radius: 0.0010, passenger_pct: 0.10 },
+    { name: 'Security',            lat: 53.4223, lon: -6.2681, radius: 0.0008, passenger_pct: 0.25 },
+    { name: 'Gates 200-216',       lat: 53.4283, lon: -6.2511, radius: 0.0015, passenger_pct: 0.25 },
+    { name: 'Gates 300',           lat: 53.4183, lon: -6.2651, radius: 0.0012, passenger_pct: 0.15 },
+    { name: 'Retail / Food',       lat: 53.4233, lon: -6.2641, radius: 0.0006, passenger_pct: 0.05 }
+];
+
+/**
+ * Initialises the Run Prediction button and time slider in the panel.
+ * Sets the date picker to tomorrow by default.
+ */
+function initMapPrediction() {
+    const dateInput = document.getElementById('prediction-date');
+    if (dateInput) dateInput.value = getTomorrowString();
+
+    const runBtn = document.getElementById('btn-run-prediction');
+    if (runBtn) runBtn.addEventListener('click', runMapPrediction);
+
+    const slider = document.getElementById('time-slider');
+    if (slider) {
+        slider.addEventListener('input', function () {
+            const hour = parseInt(this.value);
+            updatePanelSliderDisplay(hour);
+
+            // Debounce heatmap update: only fire after user stops moving for 150ms
+            // Prevents hammering the API on every pixel of slider movement
+            clearTimeout(slider._debounce);
+            slider._debounce = setTimeout(() => {
+                if (mapPredictions.length > 0) updateDynamicHeatmap(hour);
+            }, 150);
+        });
+    }
+
+    console.log('✓ Map prediction (Phase 3B.5) initialized');
+}
+
+/**
+ * Fetches hourly predictions from the Django API and triggers the
+ * initial dynamic heatmap render for the currently selected hour.
+ *
+ * Performance requirement: < 3 seconds.
+ */
+async function runMapPrediction() {
+    const airport   = document.getElementById('airport-select')?.value || 'DUB';
+    const date      = document.getElementById('prediction-date')?.value || getTomorrowString();
+    const runBtn    = document.getElementById('btn-run-prediction');
+    const loading   = document.getElementById('loading-indicator');
+    const statusEl  = document.getElementById('panel-prediction-status');
+    const statusTxt = document.getElementById('panel-status-text');
+    const sliderWrap = document.getElementById('panel-slider-wrap');
+
+    runBtn.disabled = true;
+    loading.classList.add('active');
+    if (statusEl) statusEl.style.display = 'none';
+
+    const startTime = performance.now();
+
+    try {
+        const response = await fetch(`/api/predictions/hourly/?airport=${airport}&date=${date}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (!data.success) throw new Error(data.error || 'Prediction failed');
+
+        mapPredictions = data.predictions;
+        const elapsed  = Math.round(performance.now() - startTime);
+
+        // Render heatmap for the slider's current hour
+        const currentHour = parseInt(document.getElementById('time-slider')?.value || 12);
+        updatePanelSliderDisplay(currentHour);
+        updateDynamicHeatmap(currentHour);
+
+        // Show slider and success badge
+        if (sliderWrap) sliderWrap.style.display = 'block';
+        if (statusEl && statusTxt) {
+            const peak = data.summary;
+            statusTxt.textContent =
+                `${data.summary.total_passengers.toLocaleString()} pax — peak ${peak.peak_hour}:00 (${elapsed}ms)`;
+            statusEl.style.display = 'flex';
+        }
+
+        showNotification(
+            `Heatmap updated — ${data.summary.total_passengers.toLocaleString()} passengers`,
+            'success'
+        );
+        console.log(`✓ Map prediction done in ${elapsed}ms`);
+
+    } catch (error) {
+        console.error('Map prediction error:', error);
+        showNotification('Prediction failed. Check server.', 'error');
+    } finally {
+        runBtn.disabled = false;
+        loading.classList.remove('active');
+    }
+}
+
+/**
+ * Updates the hour label and passenger count in the panel slider header.
+ *
+ * @param {number} hour - Selected hour (0–23)
+ */
+function updatePanelSliderDisplay(hour) {
+    const hourEl = document.getElementById('panel-hour-display');
+    const paxEl  = document.getElementById('panel-pax-display');
+
+    if (hourEl) hourEl.textContent = `${hour.toString().padStart(2, '0')}:00`;
+
+    if (paxEl) {
+        const prediction = mapPredictions.find(p => p.hour === hour);
+        paxEl.textContent = prediction
+            ? `${prediction.passengers.toLocaleString()} pax`
+            : '0 pax';
+    }
+}
+
+/**
+ * Generates and renders algorithm-driven heatmap points for a given hour.
+ * Distributes predicted passengers across realistic Dublin Airport terminal
+ * areas with Gaussian scatter for visual realism.
+ *
+ * Performance requirement: < 0.5 seconds (purely client-side generation).
+ *
+ * @param {number} hour - Hour to visualise (0–23)
+ */
+function updateDynamicHeatmap(hour) {
+    if (mapPredictions.length === 0) return;
+
+    const prediction = mapPredictions.find(p => p.hour === hour);
+    const passengers = prediction ? prediction.passengers : 0;
+
+    // Remove existing heatmap layer before redrawing
+    if (heatLayer) {
+        map.removeLayer(heatLayer);
+        heatLayer = null;
+    }
+
+    if (passengers === 0) {
+        console.log(`Hour ${hour}: 0 passengers — heatmap cleared`);
+        return;
+    }
+
+    // Calculate intensity relative to the busiest hour
+    // so the colour scale always uses the full gradient range
+    const maxPassengers = Math.max(...mapPredictions.map(p => p.passengers));
+    const relativeIntensity = passengers / maxPassengers;
+
+    // Generate spatial points: distribute passengers across terminal areas
+    const heatPoints = generateHeatmapPoints(passengers, relativeIntensity);
+
+    // Get user's intensity slider value
+    const intensitySlider = document.getElementById('intensity-slider');
+    const userIntensity = intensitySlider ? intensitySlider.value / 100 : 0.8;
+
+    heatLayer = L.heatLayer(heatPoints, {
+        radius:  18,
+        blur:    12,
+        maxZoom: 17,
+        max:     1.0 * userIntensity,
+        gradient: {
+            0.0: '#0000FF',
+            0.2: '#00FFFF',
+            0.4: '#00FF00',
+            0.6: '#FFFF00',
+            0.8: '#FF8800',
+            1.0: '#FF0000'
+        }
+    }).addTo(map);
+
+    console.log(`✓ Dynamic heatmap: hour ${hour}, ${passengers} pax, ${heatPoints.length} points`);
+}
+
+/**
+ * Generates an array of [lat, lon, intensity] heatmap points by distributing
+ * passengers proportionally across terminal zones with random Gaussian scatter.
+ *
+ * Point count is capped at 250 to keep rendering fast (< 0.5s).
+ * Scatter uses Box-Muller transform for realistic crowd clustering.
+ *
+ * @param {number} totalPassengers   - Passenger count for this hour
+ * @param {number} relativeIntensity - 0–1 scale relative to busiest hour
+ * @returns {Array} Array of [lat, lon, intensity] triples
+ */
+function generateHeatmapPoints(totalPassengers, relativeIntensity) {
+    const points   = [];
+    // Scale point count: 1 point per ~25 passengers, max 250 points
+    const maxPoints = Math.min(250, Math.max(30, Math.round(totalPassengers / 25)));
+
+    DUBLIN_AIRPORT_AREAS.forEach(area => {
+        // Points allocated to this zone proportional to its passenger percentage
+        const zonePoints = Math.round(maxPoints * area.passenger_pct);
+        const zoneIntensity = relativeIntensity * area.passenger_pct * 6; // boost per-zone intensity
+
+        for (let i = 0; i < zonePoints; i++) {
+            // Box-Muller transform: convert uniform random to Gaussian distribution
+            // This creates realistic crowd clustering (dense centre, sparse edges)
+            const u1 = Math.random();
+            const u2 = Math.random();
+            const gaussian = Math.sqrt(-2 * Math.log(u1 + 1e-10)) * Math.cos(2 * Math.PI * u2);
+
+            const lat = area.lat + gaussian * area.radius;
+            const lon = area.lon + gaussian * area.radius * 1.5; // airports wider east-west
+            const intensity = Math.min(1.0, Math.max(0.05, zoneIntensity + (Math.random() - 0.5) * 0.1));
+
+            points.push([lat, lon, intensity]);
+        }
+    });
+
+    return points;
 }

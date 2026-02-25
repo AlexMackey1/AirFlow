@@ -25,6 +25,7 @@ urlpatterns = [
 
     # ─── API Endpoints ────────────────────────────────────────────────
     path('api/heatmap/',              views.heatmap_data_api,       name='heatmap_api'),
+    path('api/heatmap/dynamic/',      views.dynamic_heatmap_api,    name='dynamic_heatmap_api'),
     path('api/predictions/hourly/',   views.hourly_predictions_api, name='hourly_predictions_api'),
     path('api/flights/search/',       views.flight_search_api,      name='flight_search_api'),
 ]
