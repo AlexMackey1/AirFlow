@@ -16,6 +16,7 @@ API Endpoints:
 
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.conf import settings
 from .models import Airport, PassengerHeatmapData, Flight
 from core.services.estimation_service import EstimationService
 from datetime import datetime, date, timedelta
@@ -41,9 +42,11 @@ def map_view(request):
     airports = Airport.objects.all()
 
     context = {
-        'airports': airports,
-        'default_airport': 'DUB',
-        'active_page': 'map'
+        'airports':            airports,
+        'default_airport':     'DUB',
+        'active_page':         'map',
+        # Google Maps API key — read from environment variable, never hardcoded
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY,
     }
 
     return render(request, 'core/map.html', context)

@@ -14,150 +14,128 @@ Performance requirements:
 // MAP PAGE GLOBALS
 // ===================================
 
-let map;
-let heatLayer;
-let airportMarker;
+let map;                  // google.maps.Map instance
+let heatmapLayer;         // google.maps.visualization.HeatmapLayer instance
+let airportMarker;        // google.maps.Marker instance
+let infoWindow;           // google.maps.InfoWindow instance
 
-// Phase 3B.5: store predictions so the time slider can scrub without re-fetching
+// Phase 3C: store predictions so time slider can scrub without re-fetching
 let mapPredictions = [];  // Array of {hour, passengers, confidence, level}
 
 // ===================================
 // INIT
 // ===================================
 
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('🗺️ Map page initializing...');
-    initMap();
-    loadHeatmapData();
-    initCollapsiblePanel();
-    initMapControls();
-    initMapPrediction();   // Phase 3B.5
-    console.log('✓ Map page ready');
-});
+// NOTE: initMap() is called automatically by the Google Maps script tag callback.
+// (callback=initMap in the script src URL)
+// Other initialisation runs inside initMap() once the API is ready.
 
 // ===================================
 // MAP INITIALIZATION
 // ===================================
 
 /**
- * Initialises the Leaflet map centred on Dublin Airport.
- * Uses OpenStreetMap tiles, sets zoom limits appropriate for airport-level view.
+ * Initialises the Google Maps instance centred on Dublin Airport.
+ * Called automatically via the Google Maps script callback=initMap parameter.
+ * Uses Hybrid map type (satellite + road labels) so terminal buildings are visible.
+ *
+ * Also triggers all other page initialisation that previously ran on DOMContentLoaded,
+ * since we need the map API loaded before anything else runs.
  */
 function initMap() {
-    map = L.map('map', {
-        center: [53.4213, -6.2701],
+    console.log('🗺️ Google Maps initializing...');
+
+    const dublinAirport = { lat: 53.4213, lng: -6.2701 };
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: dublinAirport,
         zoom: 15,
+        mapTypeId: 'roadmap',    // Satellite + road/label overlay
+        disableDefaultUI: false,
         zoomControl: true,
-        preferCanvas: true
+        mapTypeControl: true,          // Lets user switch Map/Satellite/Hybrid
+        streetViewControl: false,
+        mapTypeControlOptions: {
+            position: google.maps.ControlPosition.BOTTOM_LEFT,
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR
+        },
+                streetViewControl: false,      // Not useful for airport terminal view
+        fullscreenControl: true,
+        gestureHandling: 'greedy'      // Single finger drag on mobile
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        minZoom: 10
-    }).addTo(map);
+    // InfoWindow reused for airport marker popup
+    infoWindow = new google.maps.InfoWindow();
 
-    // Move zoom control away from the panel area
-    map.zoomControl.setPosition('topright');
+    // Place airport marker
+    airportMarker = new google.maps.Marker({
+        position: dublinAirport,
+        map: map,
+        title: 'Dublin Airport (DUB)',
+        icon: {
+            url: 'https://maps.google.com/mapfiles/ms/icons/plane.png',
+            scaledSize: new google.maps.Size(36, 36),
+            anchor: new google.maps.Point(18, 18)
+        }
+    });
 
-    console.log('✓ Map initialized (Dublin Airport 53.4213, -6.2701)');
+    airportMarker.addListener('click', () => {
+        infoWindow.setContent(`
+            <div style="font-family:inherit;padding:4px 2px;">
+                <strong style="font-size:15px;">Dublin Airport</strong><br>
+                <span style="color:#666;font-size:13px;">DUB — Dublin, Ireland</span><br>
+                <em style="font-size:11px;color:#999;">Real-time Passenger Flow</em>
+            </div>
+        `);
+        infoWindow.open(map, airportMarker);
+    });
+
+    // Run remaining page initialisation now that Google Maps API is ready
+    initCollapsiblePanel();
+    initMapControls();
+    initMapPrediction();
+
+    updateMapStatus('success');
+    console.log('✓ Google Maps ready (hybrid, Dublin Airport)');
 }
 
 // ===================================
-// HEATMAP DATA
+// HEATMAP DATA (Google Maps)
 // ===================================
 
 /**
- * Fetches heatmap data from the API and renders it on the map.
- * Called on page load and when the airport selector changes.
- * Performance requirement: < 2 seconds for airport switch.
+ * Stub kept for compatibility — main.js calls loadHeatmapData() when the
+ * airport selector changes. On the Google Maps version the marker is already
+ * placed in initMap(); we just re-centre the map and clear any existing heatmap.
  */
 function loadHeatmapData() {
-    updateMapStatus('loading');
-
     const airport = document.getElementById('airport-select')?.value || 'DUB';
-    const startTime = performance.now();
 
-    fetch(`/api/heatmap/?airport=${airport}`)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            const elapsed = Math.round(performance.now() - startTime);
-            console.log(`Heatmap loaded in ${elapsed}ms`);
+    // Airport coordinates — extend when Cork/Shannon added in Phase 3D
+    const AIRPORT_COORDS = {
+        DUB: { lat: 53.4213, lng: -6.2701, name: 'Dublin Airport' },
+        ORK: { lat: 51.8413, lng: -8.4912, name: 'Cork Airport' },
+        SNN: { lat: 52.7020, lng: -8.9248, name: 'Shannon Airport' }
+    };
 
-            if (data.success) {
-                displayHeatmap(data);
-                updateMapStatus('success');
-                // Centre map on the airport
-                if (data.airport) {
-                    map.setView([data.airport.lat, data.airport.lon], 15);
-                }
-            } else {
-                throw new Error(data.error || 'Unknown error');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading heatmap:', error);
-            updateMapStatus('error');
-            showNotification('Failed to load heatmap data', 'error');
-        });
-}
+    const coords = AIRPORT_COORDS[airport] || AIRPORT_COORDS.DUB;
 
-/**
- * Renders airport marker and heatmap layer on the Leaflet map.
- *
- * @param {Object} data - API response with airport info and heatmap points
- */
-function displayHeatmap(data) {
-    // Remove existing layers
-    if (heatLayer)     map.removeLayer(heatLayer);
-    if (airportMarker) map.removeLayer(airportMarker);
-
-    // Airport marker
-    airportMarker = L.marker([data.airport.lat, data.airport.lon], {
-        title: data.airport.name,
-        icon: L.divIcon({
-            className: 'airport-icon',
-            html: '<span style="font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">✈️</span>',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        })
-    }).addTo(map);
-
-    airportMarker.bindPopup(`
-        <div style="text-align:center;padding:4px;">
-            <strong style="font-size:15px;">${data.airport.name}</strong><br>
-            <span style="color:#666;font-size:13px;">${data.airport.code} — ${data.airport.city}</span><br>
-            <em style="font-size:11px;color:#999;">Real-time Passenger Flow</em>
-        </div>
-    `);
-
-    // Heatmap layer
-    if (data.points && data.points.length > 0) {
-        const intensitySlider = document.getElementById('intensity-slider');
-        const intensity = intensitySlider ? intensitySlider.value / 100 : 0.8;
-
-        heatLayer = L.heatLayer(data.points, {
-            radius: 15,
-            blur: 10,
-            maxZoom: 17,
-            max: 1.0 * intensity,
-            gradient: {
-                0.0: '#0000FF',
-                0.2: '#00FFFF',
-                0.4: '#00FF00',
-                0.6: '#FFFF00',
-                0.8: '#FF8800',
-                1.0: '#FF0000'
-            }
-        }).addTo(map);
-
-        console.log(`✓ Heatmap rendered: ${data.point_count} points`);
-    } else {
-        console.log('No heatmap points returned (database may be empty)');
+    if (map) {
+        map.setCenter(coords);
+        map.setZoom(15);
     }
+
+    // Clear all visualisation layers when airport changes — user must re-run prediction
+    clearVisualisationLayers();
+    mapPredictions = [];
+    const sliderWrap = document.getElementById('panel-slider-wrap');
+    const statusEl   = document.getElementById('panel-prediction-status');
+    if (sliderWrap) sliderWrap.style.display = 'none';
+    if (statusEl)   statusEl.style.display   = 'none';
+
+    updateMapStatus('success');
+    showNotification(`Switched to ${coords.name}`, 'info');
+    console.log(`✓ Map centred on ${coords.name}`);
 }
 
 /**
@@ -304,20 +282,33 @@ function initMapControls() {
 // ===================================
 
 /**
- * Dublin Airport terminal area definitions for distributing predicted
- * passengers into realistic spatial heatmap points.
+ * Dublin Airport terminal zone definitions for heatmap blob placement.
+ * Coordinates calibrated from Google Maps satellite + OpenStreetMap data.
  *
- * passenger_pct: proportion of total hourly passengers placed in this zone.
- * radius:        scatter radius in degrees (~100m per 0.001 degrees latitude).
+ * T1 (west):  check-in, security, Pier B (gates 101-119), Pier C (Ryanair)
+ * T2 (east):  check-in, security, Pier D, Pier E (transatlantic)
+ * Inter-terminal walkway connects both buildings centrally.
+ *
+ * passenger_pct: proportion of hourly passengers assigned to this zone
+ * radius:        Gaussian scatter radius in degrees (~80m per 0.001 deg lat)
  */
-const DUBLIN_AIRPORT_AREAS = [
-    { name: 'Terminal 1 Check-in', lat: 53.4213, lon: -6.2701, radius: 0.0010, passenger_pct: 0.20 },
-    { name: 'Terminal 2 Check-in', lat: 53.4273, lon: -6.2441, radius: 0.0010, passenger_pct: 0.10 },
-    { name: 'Security',            lat: 53.4223, lon: -6.2681, radius: 0.0008, passenger_pct: 0.25 },
-    { name: 'Gates 200-216',       lat: 53.4283, lon: -6.2511, radius: 0.0015, passenger_pct: 0.25 },
-    { name: 'Gates 300',           lat: 53.4183, lon: -6.2651, radius: 0.0012, passenger_pct: 0.15 },
-    { name: 'Retail / Food',       lat: 53.4233, lon: -6.2641, radius: 0.0006, passenger_pct: 0.05 }
+const DUBLIN_AIRPORT_ZONES = [
+    // Terminal 1
+    { name: 'T1 Check-in Hall',    lat: 53.4252, lng: -6.2674, radius: 0.0008, pct: 0.12 },
+    { name: 'T1 Security',         lat: 53.4258, lng: -6.2665, radius: 0.0005, pct: 0.10 },
+    { name: 'T1 Departure Lounge', lat: 53.4265, lng: -6.2650, radius: 0.0007, pct: 0.08 },
+    { name: 'Pier B Gates 101-119',lat: 53.4280, lng: -6.2620, radius: 0.0012, pct: 0.10 },
+    { name: 'Pier C Ryanair',      lat: 53.4295, lng: -6.2580, radius: 0.0014, pct: 0.12 },
+    // Terminal 2
+    { name: 'T2 Check-in Hall',    lat: 53.4272, lng: -6.2440, radius: 0.0008, pct: 0.10 },
+    { name: 'T2 Security',         lat: 53.4268, lng: -6.2430, radius: 0.0005, pct: 0.08 },
+    { name: 'T2 Departure Lounge', lat: 53.4275, lng: -6.2415, radius: 0.0007, pct: 0.06 },
+    { name: 'Pier D Gates',        lat: 53.4282, lng: -6.2390, radius: 0.0013, pct: 0.12 },
+    { name: 'Pier E Transatlantic',lat: 53.4270, lng: -6.2355, radius: 0.0010, pct: 0.08 },
+    // Central / shared
+    { name: 'Inter-terminal Walk', lat: 53.4263, lng: -6.2555, radius: 0.0006, pct: 0.04 },
 ];
+
 
 /**
  * Initialises the Run Prediction button and time slider in the panel.
@@ -428,94 +419,105 @@ function updatePanelSliderDisplay(hour) {
 }
 
 /**
- * Generates and renders algorithm-driven heatmap points for a given hour.
- * Distributes predicted passengers across realistic Dublin Airport terminal
- * areas with Gaussian scatter for visual realism.
+ * Main visualisation function — renders heatmap blobs for key terminal zones.
+ * Corridor polylines removed (Phase 3D: will revisit with real gate data).
  *
- * Performance requirement: < 0.5 seconds (purely client-side generation).
+ * Performance requirement: < 0.5 seconds (purely client-side).
  *
  * @param {number} hour - Hour to visualise (0–23)
  */
 function updateDynamicHeatmap(hour) {
     if (mapPredictions.length === 0) return;
 
-    const prediction = mapPredictions.find(p => p.hour === hour);
-    const passengers = prediction ? prediction.passengers : 0;
+    const prediction    = mapPredictions.find(p => p.hour === hour);
+    const passengers    = prediction ? prediction.passengers : 0;
+    const maxPassengers = Math.max(...mapPredictions.map(p => p.passengers));
+    const relativeLoad  = maxPassengers > 0 ? passengers / maxPassengers : 0;
 
-    // Remove existing heatmap layer before redrawing
-    if (heatLayer) {
-        map.removeLayer(heatLayer);
-        heatLayer = null;
-    }
+    // Clear existing heatmap layer
+    clearVisualisationLayers();
 
     if (passengers === 0) {
-        console.log(`Hour ${hour}: 0 passengers — heatmap cleared`);
+        console.log(`Hour ${hour}: 0 passengers — visualisation cleared`);
         return;
     }
 
-    // Calculate intensity relative to the busiest hour
-    // so the colour scale always uses the full gradient range
-    const maxPassengers = Math.max(...mapPredictions.map(p => p.passengers));
-    const relativeIntensity = passengers / maxPassengers;
-
-    // Generate spatial points: distribute passengers across terminal areas
-    const heatPoints = generateHeatmapPoints(passengers, relativeIntensity);
-
-    // Get user's intensity slider value
+    // Get user intensity preference
     const intensitySlider = document.getElementById('intensity-slider');
-    const userIntensity = intensitySlider ? intensitySlider.value / 100 : 0.8;
+    const userIntensity   = intensitySlider ? intensitySlider.value / 100 : 0.8;
 
-    heatLayer = L.heatLayer(heatPoints, {
-        radius:  18,
-        blur:    12,
-        maxZoom: 17,
-        max:     1.0 * userIntensity,
-        gradient: {
-            0.0: '#0000FF',
-            0.2: '#00FFFF',
-            0.4: '#00FF00',
-            0.6: '#FFFF00',
-            0.8: '#FF8800',
-            1.0: '#FF0000'
-        }
-    }).addTo(map);
+    drawHeatmapBlobs(passengers, relativeLoad, userIntensity);
 
-    console.log(`✓ Dynamic heatmap: hour ${hour}, ${passengers} pax, ${heatPoints.length} points`);
+    console.log(`✓ Visualisation: hour ${hour}, ${passengers} pax, load ${(relativeLoad*100).toFixed(0)}%`);
+}
+
+function clearVisualisationLayers() {
+    if (heatmapLayer) {
+        heatmapLayer.setMap(null);
+        heatmapLayer = null;
+    }
+}
+
+
+/**
+ * Draws heatmap blobs on key passenger zones (check-in, security, gates).
+ * Uses Google Maps HeatmapLayer with traffic-style gradient.
+ * Coordinates will be refined once real gate data is available (Phase 3D).
+ *
+ * @param {number} totalPassengers  - Passenger count for this hour
+ * @param {number} relativeLoad     - 0–1 vs peak hour
+ * @param {number} userIntensity    - 0–1 from intensity slider
+ */
+function drawHeatmapBlobs(totalPassengers, relativeLoad, userIntensity) {
+    const points = generateHeatmapPoints(totalPassengers, relativeLoad);
+    if (points.length === 0) return;
+
+    heatmapLayer = new google.maps.visualization.HeatmapLayer({
+        data:        points,
+        map:         map,
+        radius:      25,
+        opacity:     0.7 * userIntensity,
+        dissipating: true,
+        gradient: [
+            'rgba(0, 0, 0, 0)',
+            'rgba(0, 176, 80,  0.8)',   // Green
+            'rgba(255, 255, 0, 0.8)',   // Yellow
+            'rgba(255, 140, 0, 0.9)',   // Orange
+            'rgba(255, 0,   0, 0.9)',   // Red
+            'rgba(139, 0,   0, 1.0)'    // Dark red
+        ]
+    });
 }
 
 /**
- * Generates an array of [lat, lon, intensity] heatmap points by distributing
- * passengers proportionally across terminal zones with random Gaussian scatter.
+ * Generates weighted LatLng points for heatmap blob zones.
+ * Uses Box-Muller Gaussian scatter for realistic crowd clustering.
  *
- * Point count is capped at 250 to keep rendering fast (< 0.5s).
- * Scatter uses Box-Muller transform for realistic crowd clustering.
- *
- * @param {number} totalPassengers   - Passenger count for this hour
- * @param {number} relativeIntensity - 0–1 scale relative to busiest hour
- * @returns {Array} Array of [lat, lon, intensity] triples
+ * @param {number} totalPassengers - Passenger count for this hour
+ * @param {number} relativeLoad    - 0–1 vs peak hour
+ * @returns {Array} Array of {location: LatLng, weight: number}
  */
-function generateHeatmapPoints(totalPassengers, relativeIntensity) {
-    const points   = [];
-    // Scale point count: 1 point per ~25 passengers, max 250 points
-    const maxPoints = Math.min(250, Math.max(30, Math.round(totalPassengers / 25)));
+function generateHeatmapPoints(totalPassengers, relativeLoad) {
+    const points    = [];
+    const maxPoints = Math.min(300, Math.max(30, Math.round(totalPassengers / 20)));
 
-    DUBLIN_AIRPORT_AREAS.forEach(area => {
-        // Points allocated to this zone proportional to its passenger percentage
-        const zonePoints = Math.round(maxPoints * area.passenger_pct);
-        const zoneIntensity = relativeIntensity * area.passenger_pct * 6; // boost per-zone intensity
+    DUBLIN_AIRPORT_ZONES.forEach(zone => {
+        const zoneCount  = Math.round(maxPoints * zone.pct);
+        const zoneWeight = relativeLoad * zone.pct * 10;
 
-        for (let i = 0; i < zonePoints; i++) {
-            // Box-Muller transform: convert uniform random to Gaussian distribution
-            // This creates realistic crowd clustering (dense centre, sparse edges)
-            const u1 = Math.random();
-            const u2 = Math.random();
+        for (let i = 0; i < zoneCount; i++) {
+            const u1       = Math.random();
+            const u2       = Math.random();
             const gaussian = Math.sqrt(-2 * Math.log(u1 + 1e-10)) * Math.cos(2 * Math.PI * u2);
 
-            const lat = area.lat + gaussian * area.radius;
-            const lon = area.lon + gaussian * area.radius * 1.5; // airports wider east-west
-            const intensity = Math.min(1.0, Math.max(0.05, zoneIntensity + (Math.random() - 0.5) * 0.1));
+            const lat    = zone.lat + gaussian * zone.radius;
+            const lng    = zone.lng + gaussian * zone.radius * 1.2;
+            const weight = Math.min(10, Math.max(0.5, zoneWeight + (Math.random() - 0.5) * 1.5));
 
-            points.push([lat, lon, intensity]);
+            points.push({
+                location: new google.maps.LatLng(lat, lng),
+                weight:   weight
+            });
         }
     });
 

@@ -19,9 +19,6 @@ UI Principles:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AirFlow - Live View</title>
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
@@ -29,6 +26,10 @@ UI Principles:
     <link rel="stylesheet" href="/static/core/css/style.css">
     <!-- Map-specific CSS -->
     <link rel="stylesheet" href="/static/core/css/map.css">
+
+    <!-- Google Maps JavaScript API (key injected server-side by Django) -->
+    <!-- libraries=visualization is required for HeatmapLayer -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=visualization&callback=initMap" async defer></script>
 </head>
 <body class="map-page">
 
@@ -304,15 +305,9 @@ UI Principles:
         </div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Leaflet Heat Plugin -->
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-
     <!-- Shared JS -->
     <script src="/static/core/js/main.js"></script>
-    <!-- Map-specific JS -->
+    <!-- Map-specific JS (Google Maps implementation) -->
     <script src="/static/core/js/map.js"></script>
 </body>
 </html>

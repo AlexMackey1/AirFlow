@@ -340,6 +340,7 @@ body.map-page {
     left: var(--panel-w);               /* Sits right next to panel */
     right: 0;
     bottom: var(--statusbar-h);
+    height: calc(100vh - var(--navbar-h) - var(--statusbar-h));
     z-index: 1;
     transition: left var(--transition); /* Smooth expand when panel collapses */
 }
