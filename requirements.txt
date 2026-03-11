@@ -6,3 +6,4 @@ GDAL @ file:///C:/Users/alexs/Downloads/gdal-3.11.1-cp313-cp313-win_amd64.whl#sh
 psycopg2-binary==2.9.11
 sqlparse==0.5.3
 tzdata==2025.2
+requests==2.31.0

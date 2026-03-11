@@ -214,6 +214,18 @@ class Flight(models.Model):
         max_length=100,
         help_text="Operating airline"
     )
+    terminal = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text="Departure terminal (e.g., '1', '2') — used for gate-driven heatmap in Phase 3D"
+    )
+    gate = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text="Departure gate (e.g., '114', '211') — drives zone intensity in heatmap"
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
