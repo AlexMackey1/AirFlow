@@ -1,6 +1,5 @@
 """
-Author: Alexander Mackey
-Student ID: C22739165
+Author: Alexander Mackey, Student ID: C22739165
 Description: Django views for AirFlow application. Handles HTTP requests by rendering
 page templates and providing JSON API endpoints.
 
@@ -12,6 +11,8 @@ API Endpoints:
     heatmap_data_api()        → /api/heatmap/
     hourly_predictions_api()  → /api/predictions/hourly/
     flight_search_api()       → /api/flights/search/
+    dynamic_heatmap_api()     → /api/heatmap/dynamic/
+    debug_pathways_api()      → /api/debug/pathways/
 """
 
 from django.shortcuts import render
@@ -19,6 +20,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from .models import Airport, PassengerHeatmapData, Flight
 from core.services.estimation_service import EstimationService
+from core.services.pathway_interpolator import build_flight_heatmap_points
 from datetime import datetime, date, timedelta
 import logging
 
@@ -421,11 +423,14 @@ def flight_search_api(request):
 
 def dynamic_heatmap_api(request):
     """
-    PHASE 3B.5: Generate dynamic algorithm-driven heatmap points for a given hour.
+    PHASE 3D: Gate-driven pathway heatmap.
 
-    Instead of returning static DB points, this endpoint runs the EstimationService,
-    extracts the passenger count for the requested hour, and distributes points
-    across realistic Dublin Airport terminal areas.
+    Runs EstimationService to get hourly predictions, then queries flights departing
+    in the requested hour and routes each flight's passengers along their actual
+    terminal walking pathway using PathwayInterpolator.
+
+    Falls back to terminal spine distribution if no flights exist in DB for that hour
+    (e.g. future dates not yet scraped).
 
     Query Parameters:
         airport (str): IATA code (default: 'DUB')
@@ -436,20 +441,19 @@ def dynamic_heatmap_api(request):
         JsonResponse:
         {
             'success': True,
+            'airport': 'DUB',
+            'date': 'YYYY-MM-DD',
             'hour': 12,
             'passengers': 608,
-            'max_passengers': 608,
-            'relative_intensity': 1.0,
-            'points': [[lat, lon, intensity], ...]
+            'max_passengers': 800,
+            'relative_intensity': 0.76,
+            'point_count': 412,
+            'points': [{'lat': float, 'lon': float, 'weight': float}, ...]
         }
 
-    Performance requirement: < 0.5 seconds
-    Note: Point generation is done client-side in map.js for better performance.
-          This endpoint returns the raw passenger count; the frontend generates points.
+    Performance: target < 0.5s (pathway interpolation is pure Python, no extra DB
+    queries beyond the initial flight fetch).
     """
-    import random
-    import math
-
     airport_code = request.GET.get('airport', 'DUB')
     date_str     = request.GET.get('date')
     hour_str     = request.GET.get('hour', '12')
@@ -474,46 +478,83 @@ def dynamic_heatmap_api(request):
     try:
         airport = Airport.objects.get(iata_code=airport_code)
 
-        service     = EstimationService(airport_code, prediction_date)
-        predictions = service.generate_hourly_predictions(verbose=False)
+        # Run EstimationService to get 24-hour predictions
+        service        = EstimationService(airport_code, prediction_date)
+        predictions    = service.generate_hourly_predictions(verbose=False)
 
-        # Extract the requested hour
-        hour_data   = next((p for p in predictions if p['hour'] == hour), {'passengers': 0, 'confidence': 0.0})
-        passengers  = hour_data['passengers']
-        max_passengers = max((p['passengers'] for p in predictions), default=1)
+        hour_data          = next((p for p in predictions if p['hour'] == hour), {'passengers': 0, 'confidence': 0.0})
+        passengers         = hour_data['passengers']
+        max_passengers     = max((p['passengers'] for p in predictions), default=1)
         relative_intensity = passengers / max_passengers if max_passengers > 0 else 0.0
 
-        # Terminal area definitions for Dublin Airport
-        # Point generation can also be done client-side (map.js does this)
-        # This endpoint exists for server-side generation / future caching
-        areas = [
-            {'lat': 53.4213, 'lon': -6.2701, 'radius': 0.0010, 'pct': 0.20},  # T1 check-in
-            {'lat': 53.4273, 'lon': -6.2441, 'radius': 0.0010, 'pct': 0.10},  # T2 check-in
-            {'lat': 53.4223, 'lon': -6.2681, 'radius': 0.0008, 'pct': 0.25},  # Security
-            {'lat': 53.4283, 'lon': -6.2511, 'radius': 0.0015, 'pct': 0.25},  # Gates 200-216
-            {'lat': 53.4183, 'lon': -6.2651, 'radius': 0.0012, 'pct': 0.15},  # Gates 300
-            {'lat': 53.4233, 'lon': -6.2641, 'radius': 0.0006, 'pct': 0.05},  # Retail/food
-        ]
+        # Use service.flight_estimates (in-memory) to get per-flight passenger counts
+        # alongside terminal/gate data. Avoids a redundant DB query and ensures the
+        # same estimates that produced hourly totals are used for pathway routing.
+        # Include flights whose passengers are plausibly in the terminal at
+        # current_hour. Passengers start arriving ~2.5 hours before departure
+        # and are gone once the flight departs. So include flights departing
+        # between (current_hour - 0) and (current_hour + 3).
+        flights_data = []
+        for fe in service.flight_estimates:
+            flight   = fe['flight']
+            dep_hour = flight.departure_time.hour
+            dep_mins = dep_hour * 60 + flight.departure_time.minute
+            cur_mins = hour * 60 + 30   # midpoint of current hour
+            mins_to_dep = dep_mins - cur_mins
+            # Only include if passengers are plausibly in terminal:
+            # arriving up to 180 mins before departure, gone after departure
+            if not (-10 <= mins_to_dep <= 180):
+                continue
+            flights_data.append({
+                'terminal':         flight.terminal or '',
+                'gate':             flight.gate,
+                'passengers':       fe['estimated_passengers'],
+                'departure_hour':   flight.departure_time.hour,
+                'departure_minute': flight.departure_time.minute,
+            })
 
-        points = []
-        max_points = min(250, max(30, passengers // 25)) if passengers > 0 else 0
+        # Generate pathway points — interpolator uses current_hour vs departure
+        # time to light up the correct terminal segment per flight.
+        points = build_flight_heatmap_points(flights_data, current_hour=hour)
 
-        for area in areas:
-            zone_count = round(max_points * area['pct'])
-            zone_intensity = relative_intensity * area['pct'] * 6
+        # Fallback if nothing generated
+        if not points and passengers > 0:
+            fallback_data = [
+                {'terminal': 'T1', 'gate': None, 'passengers': int(passengers * 0.60),
+                 'departure_hour': hour + 2, 'departure_minute': 0},
+                {'terminal': 'T2', 'gate': None, 'passengers': int(passengers * 0.40),
+                 'departure_hour': hour + 2, 'departure_minute': 0},
+            ]
+            points = build_flight_heatmap_points(fallback_data, current_hour=hour)
 
-            for _ in range(zone_count):
-                # Box-Muller Gaussian scatter for realistic crowd clustering
-                u1 = max(random.random(), 1e-10)
-                u2 = random.random()
-                gaussian = math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+        # Aggregate nearby points to prevent spine stacking from drowning gate points.
+        # Points within ~10m (0.0001 degrees) are merged by summing their weights.
+        # Then normalise so max weight = 1.0 so HeatmapLayer renders all areas fairly.
+        if points:
+            GRID_SIZE = 0.0001   # ~10m grid cells
+            grid = {}
+            for p in points:
+                key = (round(p['lat'] / GRID_SIZE), round(p['lon'] / GRID_SIZE))
+                if key in grid:
+                    grid[key]['weight'] += p['weight']
+                    grid[key]['count']  += 1
+                else:
+                    grid[key] = {'lat': p['lat'], 'lon': p['lon'],
+                                 'weight': p['weight'], 'count': 1}
 
-                lat       = area['lat'] + gaussian * area['radius']
-                lon       = area['lon'] + gaussian * area['radius'] * 1.5
-                intensity = min(1.0, max(0.05, zone_intensity + (random.random() - 0.5) * 0.1))
-                points.append([round(lat, 6), round(lon, 6), round(intensity, 3)])
+            # Normalise aggregated weights to 0-1
+            max_w = max(v['weight'] for v in grid.values())
+            if max_w > 0:
+                points = [
+                    {'lat': v['lat'], 'lon': v['lon'],
+                     'weight': round(min(1.0, v['weight'] / max_w), 4)}
+                    for v in grid.values()
+                ]
 
-        logger.info(f"Dynamic heatmap: {airport_code} {prediction_date} hour={hour} pax={passengers} points={len(points)}")
+        logger.info(
+            f"Dynamic heatmap (3D): {airport_code} {prediction_date} "
+            f"hour={hour} pax={passengers} flights={len(flights_data)} points={len(points)}"
+        )
 
         return JsonResponse({
             'success':            True,
@@ -524,7 +565,7 @@ def dynamic_heatmap_api(request):
             'max_passengers':     max_passengers,
             'relative_intensity': round(relative_intensity, 3),
             'point_count':        len(points),
-            'points':             points
+            'points':             points,
         })
 
     except Airport.DoesNotExist:
@@ -533,3 +574,94 @@ def dynamic_heatmap_api(request):
     except Exception as e:
         logger.exception(f"Error generating dynamic heatmap: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def debug_pathways_api(request):
+    """
+    DEBUG ONLY — Phase 3D coordinate verification.
+
+    Returns T1 and T2 pathway skeleton points as equal-weight heatmap points so the
+    full terminal layout can be visually verified against the map before going live.
+
+    Query Parameters:
+        terminal (str): 'T1', 'T2', or 'all' (default: 'all')
+        pier (str):     optional sub-filter e.g. 'pier_1', 'pier_4', 't2_connector', 'spine'
+
+    Returns:
+        JsonResponse:
+        {
+            'success': True,
+            'points': [[lat, lon, intensity], ...],
+            'counts': {'T1_spine': N, 'T1_pier_1': N, ...},
+            'total': N
+        }
+
+    Usage:
+        /api/debug/pathways/
+        /api/debug/pathways/?terminal=T2
+        /api/debug/pathways/?terminal=T1&pier=pier_1
+    """
+    from core.services.gate_coordinates import (
+        T1_PATHWAYS, T2_PATHWAYS,
+        T1_GATES, T2_GATES,
+    )
+
+    terminal_filter = request.GET.get('terminal', 'all').upper()
+    pier_filter     = request.GET.get('pier', 'all')
+
+    # Distinct intensity per pathway so piers are visually distinguishable on the map
+    intensity_map = {
+        'T1_spine':        0.3,
+        'T1_pier_1':       1.0,
+        'T1_pier_2':       0.7,
+        'T1_pier_3':       0.5,
+        'T2_spine':        0.3,
+        'T2_pier_4':       0.9,
+        'T2_t2_connector': 0.6,
+    }
+
+    points = []
+    counts = {}
+
+    def add_pathway(label, pathway, intensity):
+        for lat, lon in pathway:
+            points.append([round(lat, 7), round(lon, 7), intensity])
+        counts[label] = len(pathway)
+
+    # T1 pathways
+    if terminal_filter in ('T1', 'ALL'):
+        for pier_name, pathway in T1_PATHWAYS.items():
+            label = f'T1_{pier_name}'
+            if pier_filter != 'all' and pier_filter != pier_name:
+                continue
+            add_pathway(label, pathway, intensity_map.get(label, 0.5))
+
+    # T2 pathways
+    if terminal_filter in ('T2', 'ALL'):
+        for pier_name, pathway in T2_PATHWAYS.items():
+            label = f'T2_{pier_name}'
+            if pier_filter != 'all' and pier_filter != pier_name:
+                continue
+            add_pathway(label, pathway, intensity_map.get(label, 0.5))
+
+    # Gate markers at full intensity so individual gate positions are visible
+    if pier_filter == 'all':
+        if terminal_filter in ('T1', 'ALL'):
+            for gate_num, (lat, lon) in T1_GATES.items():
+                points.append([round(lat, 7), round(lon, 7), 1.0])
+            counts['T1_gates'] = len(T1_GATES)
+
+        if terminal_filter in ('T2', 'ALL'):
+            for gate_num, (lat, lon) in T2_GATES.items():
+                points.append([round(lat, 7), round(lon, 7), 1.0])
+            counts['T2_gates'] = len(T2_GATES)
+
+    return JsonResponse({
+        'success':  True,
+        'terminal': terminal_filter,
+        'pier':     pier_filter,
+        'points':   points,
+        'counts':   counts,
+        'total':    len(points),
+        'note':     'DEBUG endpoint — remove before production',
+    })

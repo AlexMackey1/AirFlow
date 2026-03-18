@@ -28,4 +28,7 @@ urlpatterns = [
     path('api/heatmap/dynamic/',      views.dynamic_heatmap_api,    name='dynamic_heatmap_api'),
     path('api/predictions/hourly/',   views.hourly_predictions_api, name='hourly_predictions_api'),
     path('api/flights/search/',       views.flight_search_api,      name='flight_search_api'),
+
+    #Debugging endpoint to test gate coordinate data
+    path('api/debug/pathways/', views.debug_pathways_api, name='debug_pathways_api'),
 ]
