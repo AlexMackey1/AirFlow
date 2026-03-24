@@ -318,7 +318,7 @@ def flight_search_api(request):
 
         flight = Flight.objects.filter(
             origin=airport,
-            flight_number=flight_number,
+            flight_number__iexact=flight_number,
             departure_time__range=(start_datetime, end_datetime)
         ).select_related('aircraft_type', 'origin', 'destination').first()
 
@@ -527,9 +527,11 @@ def dynamic_heatmap_api(request):
             ]
             points = build_flight_heatmap_points(fallback_data, current_hour=hour)
 
-        # Aggregate nearby points to prevent spine stacking from drowning gate points.
-        # Points within ~10m (0.0001 degrees) are merged by summing their weights.
-        # Then normalise so max weight = 1.0 so HeatmapLayer renders all areas fairly.
+        # Aggregate nearby points into ~10m grid cells.
+        # Use per-cell AVERAGE (not sum) so gate cells (few gate-phase flights)
+        # are not drowned by spine cells (all flights pass through the spine).
+        # Summing then normalising by max-sum was tried and kept gates invisible
+        # because spine sum >> gate sum after normalisation.
         if points:
             GRID_SIZE = 0.0001   # ~10m grid cells
             grid = {}
@@ -542,13 +544,17 @@ def dynamic_heatmap_api(request):
                     grid[key] = {'lat': p['lat'], 'lon': p['lon'],
                                  'weight': p['weight'], 'count': 1}
 
-            # Normalise aggregated weights to 0-1
-            max_w = max(v['weight'] for v in grid.values())
-            if max_w > 0:
+            # Average weight per cell, then normalise by max average so the full
+            # 0–1 scale is used.  Spine avg ≈ 0.4–0.6, gate avg ≈ 0.3–0.5 →
+            # gate cells normalise to ~0.6–0.9 and are visible on the HeatmapLayer.
+            avg_weights = {k: v['weight'] / v['count'] for k, v in grid.items()}
+            max_avg = max(avg_weights.values()) if avg_weights else 1.0
+            if max_avg > 0:
                 points = [
-                    {'lat': v['lat'], 'lon': v['lon'],
-                     'weight': round(min(1.0, v['weight'] / max_w), 4)}
-                    for v in grid.values()
+                    {'lat': grid[k]['lat'], 'lon': grid[k]['lon'],
+                     'weight': round(min(1.0, avg_weights[k] / max_avg), 4)}
+                    for k in grid
+                    if avg_weights[k] / max_avg >= 0.01
                 ]
 
         logger.info(

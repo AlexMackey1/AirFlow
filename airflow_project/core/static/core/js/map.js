@@ -384,7 +384,7 @@ const DUBLIN_AIRPORT_CORRIDORS = [
  */
 function initMapPrediction() {
     const dateInput = document.getElementById('prediction-date');
-    if (dateInput) dateInput.value = getTomorrowString();
+    if (dateInput) dateInput.value = '2026-03-20';
 
     const runBtn = document.getElementById('btn-run-prediction');
     if (runBtn) runBtn.addEventListener('click', runMapPrediction);
@@ -545,11 +545,17 @@ async function updateDynamicHeatmap(hour) {
 
         if (heatmapData.length > 0) {
             heatmapLayer = new google.maps.visualization.HeatmapLayer({
-                data:         heatmapData,
-                map:          map,
-                radius:       15,
-                opacity:      0.7 * userIntensity,
+                data:        heatmapData,
+                map:         map,
+                radius:      15,
+                opacity:     0.7 * userIntensity,
                 dissipating:  true,
+                // maxIntensity: 1.0 clips the dense spine (accumulated kernel >> 1)
+                // to saturated red while gate-end cells (avg weight ~0.79 after
+                // per-cell averaging in views.py) map to ~79% → orange/red and
+                // are visible.  Without this, auto-scaling maps gate cells to
+                // ~16% of spine max which falls below the gradient's transparent
+                // first stop and renders invisible.
                 maxIntensity: 1.0,
                 gradient: [
                     'rgba(0, 0, 0, 0)',

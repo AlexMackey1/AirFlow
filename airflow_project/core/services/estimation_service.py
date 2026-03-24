@@ -105,8 +105,7 @@ class EstimationService:
         self.flights = Flight.objects.filter(
             origin=self.airport,
             departure_time__date=self.date,
-            status='scheduled'
-        ).select_related('aircraft_type', 'destination').order_by('departure_time')
+        ).exclude(status='cancelled').select_related('aircraft_type', 'destination').order_by('departure_time')
         
         # Log data preparation results
         total_flights = self.flights.count()

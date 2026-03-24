@@ -514,7 +514,7 @@ class Command(BaseCommand):
         flight    = raw.get('flight')    or {}
         airline   = raw.get('airline')   or {}
 
-        flight_number = flight.get('iata') or flight.get('number')
+        flight_number = (flight.get('iata') or flight.get('number') or '').upper()
         if not flight_number:
             return 'skipped'
 
@@ -686,7 +686,7 @@ class Command(BaseCommand):
         aircraft  = raw.get('aircraft')  or {}
 
         # Different field name: flight.iataNumber not flight.iata
-        flight_number = flight.get('iataNumber') or flight.get('number')
+        flight_number = (flight.get('iataNumber') or flight.get('number') or '').upper()
         if not flight_number:
             return 'skipped'
 
