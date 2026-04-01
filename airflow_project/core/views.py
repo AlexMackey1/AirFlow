@@ -342,7 +342,9 @@ def flight_search_api(request):
             'capacity':             flight.aircraft_type.total_capacity if flight.aircraft_type else None,
             'estimated_passengers': flight.estimated_passengers,
             'route_type':           flight.route_type,
-            'status':               flight.status
+            'status':               flight.status,
+            'terminal':             flight.terminal or '—',
+            'gate':                 flight.gate or '—',
         }
 
         # Run estimation to get hourly congestion for recommendation
@@ -502,8 +504,9 @@ def dynamic_heatmap_api(request):
             cur_mins = hour * 60 + 30   # midpoint of current hour
             mins_to_dep = dep_mins - cur_mins
             # Only include if passengers are plausibly in terminal:
-            # arriving up to 180 mins before departure, gone after departure
-            if not (-10 <= mins_to_dep <= 180):
+            # arriving up to 180 mins before departure, gone up to 60 mins after departure
+            # -60 lookback ensures flights that departed earlier in the same hour still show heat
+            if not (-60 <= mins_to_dep <= 180):
                 continue
             flights_data.append({
                 'terminal':         flight.terminal or '',
@@ -512,6 +515,19 @@ def dynamic_heatmap_api(request):
                 'departure_hour':   flight.departure_time.hour,
                 'departure_minute': flight.departure_time.minute,
             })
+
+        # Count how many active flights share each gate.
+        # Used by PathwayInterpolator to scale down pax_scale per flight
+        # so a gate with 10 Ryanair flights doesn't dominate the heatmap
+        # over a gate with 1 transatlantic flight.
+        gate_counts = {}
+        for fd in flights_data:
+            g = fd['gate'] or '__no_gate__'
+            gate_counts[g] = gate_counts.get(g, 0) + 1
+
+        for fd in flights_data:
+            g = fd['gate'] or '__no_gate__'
+            fd['gate_flight_count'] = gate_counts[g]
 
         # Generate pathway points — interpolator uses current_hour vs departure
         # time to light up the correct terminal segment per flight.
@@ -544,17 +560,40 @@ def dynamic_heatmap_api(request):
                     grid[key] = {'lat': p['lat'], 'lon': p['lon'],
                                  'weight': p['weight'], 'count': 1}
 
-            # Average weight per cell, then normalise by max average so the full
-            # 0–1 scale is used.  Spine avg ≈ 0.4–0.6, gate avg ≈ 0.3–0.5 →
-            # gate cells normalise to ~0.6–0.9 and are visible on the HeatmapLayer.
+            # Average weight per cell, then normalise dynamically:
+            #
+            # Problem with max normalisation: one mega-busy cell (e.g. T1 gate 13
+            # with 20 Ryanair flights) sets the ceiling, making everything else
+            # comparatively invisible — the heatmap becomes either red or empty.
+            #
+            # Fix: use the 95th percentile as the normalisation ceiling.
+            # This means the top 5% of cells saturate to red, but the remaining
+            # 95% spread across the full colour gradient — green through orange.
+            #
+            # Minimum weight: 25% of the mean average weight for this hour.
+            # Ensures quiet areas (e.g. T2 Pier 4 with one transatlantic flight)
+            # remain visible rather than dropping below the HeatmapLayer threshold.
+            # Both values are derived from the actual data — nothing is hardcoded.
             avg_weights = {k: v['weight'] / v['count'] for k, v in grid.items()}
-            max_avg = max(avg_weights.values()) if avg_weights else 1.0
-            if max_avg > 0:
+
+            if avg_weights:
+                sorted_weights = sorted(avg_weights.values())
+                n = len(sorted_weights)
+
+                # 95th percentile ceiling — stops a single dominant cell washing out the rest
+                p95_index  = max(0, int(n * 0.95) - 1)
+                ceiling    = sorted_weights[p95_index]
+                if ceiling == 0:
+                    ceiling = sorted_weights[-1]  # fallback to max if p95 is 0
+
+                # Dynamic minimum: 25% of mean — keeps quiet areas faintly visible
+                mean_weight = sum(sorted_weights) / n
+                min_weight  = mean_weight * 0.25
+
                 points = [
                     {'lat': grid[k]['lat'], 'lon': grid[k]['lon'],
-                     'weight': round(min(1.0, avg_weights[k] / max_avg), 4)}
+                     'weight': round(min(1.0, max(min_weight, avg_weights[k]) / ceiling), 4)}
                     for k in grid
-                    if avg_weights[k] / max_avg >= 0.01
                 ]
 
         logger.info(

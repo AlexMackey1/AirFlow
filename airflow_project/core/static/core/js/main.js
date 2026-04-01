@@ -202,6 +202,8 @@ function displayFlightDetails(flight) {
     document.getElementById('detail-aircraft').textContent      = flight.aircraft;
     document.getElementById('detail-passengers').textContent    =
         flight.estimated_passengers ? flight.estimated_passengers.toLocaleString() : 'N/A';
+    document.getElementById('detail-terminal').textContent      = flight.terminal || '—';
+    document.getElementById('detail-gate').textContent          = flight.gate     || '—';
 
     document.getElementById('flight-details').style.display = 'block';
 }

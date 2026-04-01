@@ -303,21 +303,45 @@ class EstimationService:
         # Most passengers arrive in middle of window, fewer at extremes
         slot_weights = self._generate_normal_distribution(len(slots))
         
-        # Distribute passengers across slots according to weights
+        # Distribute passengers across slots according to weights.
+        # Apply a minimum slot time floor of 04:30 — Dublin Airport opens for
+        # check-in around this time. Slots before this are dropped and their
+        # passengers redistributed to the earliest valid slot to avoid
+        # artificially inflating the 03:00-04:00 hours.
+        AIRPORT_OPEN_HOUR   = 4
+        AIRPORT_OPEN_MINUTE = 30
+
         distribution = []
         remaining_passengers = estimated_passengers
-        
+        dropped_passengers   = 0
+
         for i, (slot_time, weight) in enumerate(zip(slots, slot_weights)):
             if i == len(slots) - 1:
-                # Last slot gets remaining passengers (avoid rounding errors)
                 slot_passengers = remaining_passengers
             else:
                 slot_passengers = int(estimated_passengers * weight)
                 remaining_passengers -= slot_passengers
-            
-            if slot_passengers > 0:
+
+            if slot_passengers <= 0:
+                continue
+
+            # Drop slots before airport opening — accumulate for redistribution
+            slot_hour   = slot_time.hour
+            slot_minute = slot_time.minute
+            before_open = (
+                slot_hour < AIRPORT_OPEN_HOUR or
+                (slot_hour == AIRPORT_OPEN_HOUR and slot_minute < AIRPORT_OPEN_MINUTE)
+            )
+            if before_open:
+                dropped_passengers += slot_passengers
+            else:
                 distribution.append((slot_time, slot_passengers))
-        
+
+        # Add any dropped passengers to the first valid slot
+        if dropped_passengers > 0 and distribution:
+            first_slot_time, first_slot_pax = distribution[0]
+            distribution[0] = (first_slot_time, first_slot_pax + dropped_passengers)
+
         return distribution
     
     def _generate_normal_distribution(self, num_slots):

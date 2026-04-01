@@ -252,20 +252,59 @@ class Flight(models.Model):
     def __str__(self):
         return f"{self.flight_number} {self.origin.iata_code}→{self.destination.iata_code} @ {self.departure_time.strftime('%H:%M')}"
 
+    # Known long-haul destination IATA codes from Dublin.
+    # Used as a fallback when AviationStack returns an unreliable arrival time
+    # (common on /v1/flights — missing arrival.scheduled falls back to dep+2h).
+    LONG_HAUL_DESTINATIONS = {
+        # North America
+        'JFK', 'EWR', 'BOS', 'ORD', 'LAX', 'SFO', 'SEA', 'MIA', 'IAD',
+        'PHL', 'ATL', 'MSP', 'MCO', 'CLE', 'IND', 'BNA', 'BDL',
+        # Canada
+        'YYZ', 'YUL', 'YVR', 'YEG',
+        # Middle East
+        'DXB', 'AUH', 'DOH', 'AMM', 'BEY',
+        # Asia
+        'HKG', 'SIN', 'NRT', 'ICN',
+        # Africa / long-haul
+        'CPT', 'JNB', 'ACC',
+    }
+
     @property
     def route_type(self):
         """
-        Determine route type for load factor lookup.
-        Simple heuristic based on distance or destination region.
+        Determine route type using a hybrid duration + destination approach.
+
+        AviationStack frequently returns unreliable arrival times on /v1/flights
+        (missing arrival.scheduled falls back to departure + 2 hours in the scraper).
+        A pure duration check therefore misclassifies transatlantic flights as
+        short_haul when their stored duration is only 120 minutes.
+
+        Strategy:
+        1. Check destination IATA against known long-haul list — authoritative.
+        2. If duration is genuinely long (>360 mins) classify as long_haul regardless.
+        3. Fall back to duration thresholds for everything else.
+
+        Thresholds:
+            < 90 minutes  → regional   (e.g. Dublin–Donegal, Dublin–Shannon)
+            < 360 minutes → short_haul (e.g. Dublin–London, Dublin–Marrakech)
+            >= 360 minutes → long_haul  (e.g. Dublin–Dubai — when real time available)
         """
-        # For now, simplified logic:
-        # If destination is in Europe (common European countries), it's short-haul
-        # Otherwise long-haul
-        # This can be refined with actual distance calculations later
-        european_countries = ['Ireland', 'United Kingdom', 'France', 'Germany', 'Spain', 
-                             'Italy', 'Netherlands', 'Belgium', 'Portugal', 'Greece']
-        
-        if self.destination.country in european_countries:
+        if not self.arrival_time or not self.departure_time:
+            # No times — use destination lookup as sole signal
+            if self.destination.iata_code in self.LONG_HAUL_DESTINATIONS:
+                return 'long_haul'
+            return 'short_haul'
+
+        duration_minutes = (self.arrival_time - self.departure_time).total_seconds() / 60
+
+        # Destination lookup takes priority — covers unreliable arrival times
+        if self.destination.iata_code in self.LONG_HAUL_DESTINATIONS:
+            return 'long_haul'
+
+        # Duration-based fallback
+        if duration_minutes < 90:
+            return 'regional'
+        elif duration_minutes < 360:
             return 'short_haul'
         else:
             return 'long_haul'

@@ -1,6 +1,5 @@
 /*
-Author: Alexander Mackey
-Student ID: C22739165
+Author: Alexander Mackey, Student ID: C22739165
 Description: Map page CSS - styles specific to the Live View (map.html).
 Handles the collapsible control panel, map container sizing, and legend.
 
@@ -191,42 +190,16 @@ body.map-page {
     accent-color: var(--primary);
 }
 
-/* Filter buttons */
-.filter-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
+/* Disabled / coming soon checkboxes */
+.checkbox-label--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
-.filter-btn {
-    padding: 7px 4px;
-    border: 1px solid var(--border);
-    background: white;
-    border-radius: 6px;
+.checkbox-label--disabled em {
     font-size: 10px;
-    font-weight: 500;
-    color: #555;
-    cursor: pointer;
-    transition: all var(--transition);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-}
-
-.filter-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-.filter-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-.filter-btn i {
-    font-size: 12px;
+    color: #999;
+    font-style: normal;
 }
 
 /* Refresh button */
@@ -266,6 +239,8 @@ body.map-page {
 
 /* ===================================
    LEGEND PANEL
+   Gradient matches actual HeatmapLayer colours:
+   transparent → green → yellow → orange → red → dark red
    =================================== */
 
 .legend-panel {
@@ -279,12 +254,11 @@ body.map-page {
     height: 16px;
     border-radius: 5px;
     background: linear-gradient(to right,
-        #0000FF 0%,
-        #00FFFF 20%,
-        #00FF00 40%,
-        #FFFF00 60%,
-        #FF8800 80%,
-        #FF0000 100%
+        rgba(0, 176, 80,  0.8)  0%,    /* Green   — low density */
+        rgba(255, 255, 0, 0.8) 40%,    /* Yellow  — medium */
+        rgba(255, 140, 0, 0.9) 65%,    /* Orange  — high */
+        rgba(255, 0,   0, 0.9) 85%,    /* Red     — very high */
+        rgba(139, 0,   0, 1.0) 100%    /* Dark red — peak */
     );
     margin-bottom: 6px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
@@ -348,18 +322,6 @@ body.map-page {
 /* When panel is collapsed, map expands */
 .control-panel.collapsed ~ #map {
     left: var(--panel-collapsed-w);
-}
-
-/* Leaflet popup overrides */
-.leaflet-popup-content-wrapper {
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.leaflet-popup-content {
-    margin: 12px;
-    font-family: inherit;
-    font-size: 13px;
 }
 
 /* ===================================

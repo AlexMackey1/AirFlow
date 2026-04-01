@@ -160,6 +160,7 @@ class PathwayInterpolator:
         departure_minute=0,
         current_hour=12,
         base_weight=1.0,
+        gate_flight_count=1,
     ):
         # Normalise terminal
         terminal = (terminal or '').strip().upper().replace(' ', '')
@@ -207,7 +208,15 @@ class PathwayInterpolator:
             return self._spine_only(terminal, passengers, seg_weights, base_weight)
 
         dense    = _interpolate_path(path_nodes)
-        pax_scale = min(1.0, passengers / 180)
+
+        # Scale pax contribution by 1/sqrt(gate_flight_count).
+        # When many flights share the same gate (e.g. 9 Ryanair flights at gate 13),
+        # each individual flight contributes less weight so the gate doesn't visually
+        # dominate over quieter gates with fewer but equally valid flights.
+        # sqrt rather than linear so busyness is still partially reflected —
+        # a gate with 9 flights gets 1/3 scale, not 1/9.
+        gate_scale = 1.0 / math.sqrt(max(1, gate_flight_count))
+        pax_scale  = min(1.0, passengers / 180) * gate_scale
 
         segment_slices = [
             ('checkin',  0.0,               SPLIT_CHECKIN_END,  0.85),
@@ -274,12 +283,13 @@ def build_flight_heatmap_points(flights_data, current_hour=12):
         if flight.get('passengers', 0) <= 0:
             continue
         points = interpolator.get_heatmap_points(
-            terminal         = flight.get('terminal') or '',
-            gate             = flight.get('gate'),
-            passengers       = flight.get('passengers', 0),
-            departure_hour   = flight.get('departure_hour', 12),
-            departure_minute = flight.get('departure_minute', 0),
-            current_hour     = current_hour,
+            terminal          = flight.get('terminal') or '',
+            gate              = flight.get('gate'),
+            passengers        = flight.get('passengers', 0),
+            departure_hour    = flight.get('departure_hour', 12),
+            departure_minute  = flight.get('departure_minute', 0),
+            current_hour      = current_hour,
+            gate_flight_count = flight.get('gate_flight_count', 1),
         )
         all_points.extend(points)
 

@@ -47,10 +47,6 @@ Features:
                 <i class="fas fa-chart-line"></i>
                 <span>Analytics</span>
             </a>
-            <a href="#" class="nav-item nav-item--disabled" title="Coming soon">
-                <i class="fas fa-history"></i>
-                <span>Historical</span>
-            </a>
             <button id="btn-open-flight-modal" class="nav-item nav-button">
                 <i class="fas fa-plane"></i>
                 <span>Search Flight</span>
@@ -62,12 +58,7 @@ Features:
                 <i class="fas fa-location-dot"></i>
                 <select id="airport-select">
                     <option value="DUB" selected>Dublin (DUB)</option>
-                    <option value="ORK">Cork (ORK)</option>
-                    <option value="SNN">Shannon (SNN)</option>
                 </select>
-            </div>
-            <div class="user-avatar">
-                <i class="fas fa-user-circle"></i>
             </div>
         </div>
     </nav>
@@ -289,10 +280,18 @@ Features:
                         <span class="detail-label">Est. Passengers:</span>
                         <span class="detail-value" id="detail-passengers">—</span>
                     </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Terminal:</span>
+                        <span class="detail-value" id="detail-terminal">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Gate:</span>
+                        <span class="detail-value" id="detail-gate">—</span>
+                    </div>
                 </div>
 
                 <div class="arrival-recommendation" id="arrival-recommendation" style="display: none;">
-                    <h4><i class="fas fa-lightbulb"></i> Personalized Recommendation</h4>
+                    <h4><i class="fas fa-lightbulb"></i> Personalised Recommendation</h4>
                     <div class="recommendation-highlight">
                         <i class="fas fa-clock"></i>
                         <div>
